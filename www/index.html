@@ -303,44 +303,44 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
-/* ===== Type scale (single source of truth) =====
-   Text: Inter. Numbers: Outfit, tabular. Sentence case everywhere, no letter-spaced caps.
-   Sizes: caption 12.5px · label 13px · body 15px · table 14px · value-sm 16px · value 18px · value-lg 24px · hero 30px */
-:root { --t-cap: .83rem; --t-lbl: .87rem; --t-body: 1rem; --t-tbl: .93rem; --n-sm: 1.07rem; --n-md: 1.2rem; --n-lg: 1.6rem; --n-xl: 2rem; }
-.eyebrow, .ttl, th, .kra-h, .kra .lbl, .appbar .crumb, .node .nm, .ring span, .core-stats span, .tile .eyebrow { letter-spacing: 0; text-transform: none; }
-.eyebrow { font: 500 var(--t-cap) var(--f-body); color: var(--muted); }
-.ttl { font: 600 var(--t-lbl) var(--f-display); color: var(--fg); }
-th { font: 600 var(--t-cap) var(--f-body); color: var(--muted); }
-.kra-h { font: 600 var(--t-cap) var(--f-body); }
-.kra .lbl { font: 600 var(--t-cap) var(--f-body); }
-.appbar .crumb { font: 500 var(--t-lbl) var(--f-body); }
-.brand b { letter-spacing: .01em; font-size: 1.1rem; }
-h1 { font-size: 1.55rem; letter-spacing: -.01em; } h2 { font-size: 1.1rem; }
-.cc-title { font-size: 1.55rem; letter-spacing: -.01em; }
+/* ===== Type scale — matched to RupeeFlow =====
+   One family (Inter) for text and numbers. Numbers: 800 weight, tabular, tight tracking, ₹ full size.
+   label 15px · caption 13px · body 15px · table 14.5px · value 19px · KPI 26px (phone 21px) · hero 34px (phone 30px) */
+:root { --f-num: "Inter", "Segoe UI", Roboto, system-ui, sans-serif; --t-cap: .86rem; --t-lbl: .95rem; --t-body: 1rem; --t-tbl: .96rem; --n-sm: 1.08rem; --n-md: 1.22rem; --n-lg: 1.65rem; --n-xl: 2.15rem; }
+.eyebrow, .ttl, th, .kra-h, .kra .lbl, .appbar .crumb, .node .nm, .ring span, .core-stats span, .tile .eyebrow { text-transform: none; }
+.eyebrow { font: 500 var(--t-cap) var(--f-body); color: var(--muted); letter-spacing: .01em; }
+.ttl { font: 600 1rem var(--f-body); color: var(--fg); letter-spacing: 0; }
+th { font: 600 var(--t-cap) var(--f-body); color: var(--muted); letter-spacing: 0; }
+.kra-h, .kra .lbl { font: 600 var(--t-cap) var(--f-body); letter-spacing: 0; }
+.appbar .crumb { font: 500 var(--t-lbl) var(--f-body); letter-spacing: 0; }
+.brand b { letter-spacing: -.01em; font: 800 1.2rem var(--f-body); }
+h1, .cc-title { font: 800 1.75rem/1.15 var(--f-body); letter-spacing: -.025em; }
+h2 { font: 700 1.1rem var(--f-body); letter-spacing: -.01em; }
 table { font-size: var(--t-tbl); }
-.num, td.n { font: 600 var(--t-tbl) var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: 0; }
+.num, td.n { font: 700 var(--t-tbl) var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .mono { font-family: var(--f-num); font-weight: 500; font-variant-numeric: tabular-nums; }
 .pill { font-size: var(--t-cap); font-weight: 600; letter-spacing: 0; }
-/* numbers */
-.tile .v, .cc-kpi .v { font: 600 var(--n-lg)/1.15 var(--f-num); letter-spacing: -.01em; }
-.big { font: 600 var(--n-xl)/1.1 var(--f-num); letter-spacing: -.01em; }
-.tile .v small, .big small, .cc-kpi .v small { font-size: .55em; font-weight: 500; margin-left: 3px; }
-.cur { font-size: .62em; font-weight: 500; vertical-align: .28em; margin-right: 2px; }
-.kv b { font: 600 var(--n-sm) var(--f-num); letter-spacing: 0; }
-.kv span { font-size: var(--t-cap); }
-.node .nm { font: 600 var(--t-cap) var(--f-body); }
-.node .nm b { font: 600 var(--n-md) var(--f-num); }
+/* numbers: bold, tight, ₹ same size as the digits */
+.tile .v, .cc-kpi .v { font: 800 var(--n-lg)/1.15 var(--f-num); letter-spacing: -.03em; }
+.big { font: 800 var(--n-xl)/1.1 var(--f-num); letter-spacing: -.035em; }
+.cur { font-size: 1em; font-weight: inherit; color: inherit; vertical-align: baseline; margin-right: 0; }
+.tile .v small, .big small, .cc-kpi .v small { font-size: .78em; font-weight: 800; color: inherit; margin-left: 2px; letter-spacing: -.02em; }
+.kv b { font: 700 var(--n-md) var(--f-num); letter-spacing: -.02em; }
+.kv span { font: 500 var(--t-lbl) var(--f-body); color: var(--muted); }
+.node .nm { font: 600 var(--t-lbl) var(--f-body); letter-spacing: 0; }
+.node .nm b { font: 800 var(--n-md) var(--f-num); letter-spacing: -.02em; }
 .node .nm small { font: 400 var(--t-cap) var(--f-body); }
-.core-stats span { font-size: var(--t-cap); } .core-stats b { font: 600 var(--n-md) var(--f-num); }
-.ring b { font: 600 var(--n-md) var(--f-num); } .ring span { font-size: .72rem; }
-.pl span { font-size: var(--t-tbl); } .pl b { font: 600 var(--n-sm) var(--f-num); } .pl small { font-size: var(--t-cap); font-weight: 500; }
-.pl .tot b { font-size: var(--n-md); }
-.k-ach { font: 600 var(--n-md) var(--f-num); } .k-pay b { font: 600 var(--n-sm) var(--f-num); }
-.result { font: 600 var(--n-xl) var(--f-num); }
-.delta { font-weight: 600; }
-.tile .s, .cc-kpi .k-sub, .cc-kpi .dl, .ai-note, .ai-list div { font-size: var(--t-lbl); }
-.alert .t, .split-row, .act .tx { font-size: var(--t-tbl); }
-@media (max-width: 860px) { :root { --n-lg: 1.35rem; --n-xl: 1.65rem; } h1, .cc-title { font-size: 1.3rem; } }
+.core-stats span { font-size: var(--t-cap); letter-spacing: 0; } .core-stats b { font: 800 var(--n-md) var(--f-num); letter-spacing: -.02em; }
+.ring b { font: 800 var(--n-md) var(--f-num); letter-spacing: -.02em; } .ring span { font-size: .75rem; letter-spacing: 0; }
+.pl span { font-size: var(--t-lbl); } .pl b { font: 700 var(--n-md) var(--f-num); letter-spacing: -.02em; } .pl small { font-size: var(--t-cap); font-weight: 500; }
+.pl .tot b { font: 800 1.45rem var(--f-num); }
+.k-ach { font: 800 var(--n-md) var(--f-num); letter-spacing: -.02em; } .k-pay b { font: 700 var(--n-sm) var(--f-num); }
+.result { font: 800 var(--n-xl) var(--f-num); letter-spacing: -.03em; }
+.delta { font-weight: 700; }
+.tile .s, .cc-kpi .k-sub, .ai-note, .ai-list div { font-size: var(--t-cap); }
+.cc-kpi .dl { font-size: var(--t-cap); }
+.alert .t, .split-row, .act .tx, .pl span { font-size: var(--t-tbl); }
+@media (max-width: 860px) { :root { --n-lg: 1.32rem; --n-xl: 1.9rem; } h1, .cc-title { font-size: 1.5rem; } }
 </style>
 
 <div class="shell">
@@ -972,10 +972,10 @@ function barChart(id, data, unit = '') {
   const fg = css('--fg'), mu = css('--muted'), ln = css('--line'), ac = css('--accent'), vi = css('--violet');
   c.setOption({
     grid: { left: 8, right: 54, top: 6, bottom: 6, containLabel: true },
-    xAxis: { type: 'value', splitLine: { lineStyle: { color: ln } }, axisLabel: { color: mu, fontFamily: 'Outfit, Inter, sans-serif' } },
+    xAxis: { type: 'value', splitLine: { lineStyle: { color: ln } }, axisLabel: { color: mu, fontFamily: 'Inter, sans-serif' } },
     yAxis: { type: 'category', data: data.map(d => d.n.length > 22 ? d.n.slice(0, 21) + '…' : d.n), axisLabel: { color: fg, fontSize: 12 }, axisLine: { lineStyle: { color: ln } }, axisTick: { show: false } },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: css('--panel'), borderColor: ln, textStyle: { color: fg } },
-    series: [{ type: 'bar', data: data.map(d => +d.v.toFixed(2)), barMaxWidth: 16, itemStyle: { borderRadius: [0, 5, 5, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: vi }, { offset: 1, color: ac }]) }, label: { show: true, position: 'right', color: mu, fontFamily: 'Outfit, Inter, sans-serif', fontSize: 12, formatter: p => p.value + unit } }],
+    series: [{ type: 'bar', data: data.map(d => +d.v.toFixed(2)), barMaxWidth: 16, itemStyle: { borderRadius: [0, 5, 5, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: vi }, { offset: 1, color: ac }]) }, label: { show: true, position: 'right', color: mu, fontFamily: 'Inter, sans-serif', fontSize: 12, formatter: p => p.value + unit } }],
   });
   c.on('click', p => { const d = data[p.dataIndex]; if (d && d.vid) go('op', d.vid); });
 }
@@ -1897,7 +1897,7 @@ afterRender.pulse = () => {
       const rows = M.rows.filter(r => r.kam && r.kam.gmvM); const top = rows.slice(0, 4), rest = rows.slice(4).reduce((s, r) => s + r.kam.gmvM, 0); const tot = rows.reduce((s, r) => s + r.kam.gmvM, 0);
       const data = top.map(r => ({ name: opName(r.vid), value: +r.kam.gmvM.toFixed(2) })).concat(rest ? [{ name: 'Others', value: +rest.toFixed(2) }] : []);
       c.setOption({ tooltip: Object.assign({ trigger: 'item', valueFormatter: v => '₹' + v + ' M' }, tip), color: [ac, am, gd, vi, mu], legend: { orient: 'vertical', right: 0, top: 'middle', textStyle: { color: mu, fontSize: 12 }, itemWidth: 9, itemHeight: 9, formatter: n => { const d = data.find(x => x.name === n); const s = n.length > 14 ? n.slice(0, 13) + '…' : n; return d && tot ? `${s}  ${(d.value / tot * 100).toFixed(0)}%` : s; } },
-        series: [{ type: 'pie', radius: ['50%', '68%'], center: ['26%', '50%'], avoidLabelOverlap: true, label: { show: true, position: 'center', formatter: () => `{a|₹${(tot / 10).toFixed(1)} Cr}\n{b|Total GMV}`, rich: { a: { color: fg, fontSize: 17, fontWeight: 800, fontFamily: 'Outfit, Inter, sans-serif' }, b: { color: mu, fontSize: 11, padding: [4, 0, 0, 0] } } }, itemStyle: { borderColor: css('--panel'), borderWidth: 3, borderRadius: 4 }, data }] });
+        series: [{ type: 'pie', radius: ['50%', '68%'], center: ['26%', '50%'], avoidLabelOverlap: true, label: { show: true, position: 'center', formatter: () => `{a|₹${(tot / 10).toFixed(1)} Cr}\n{b|Total GMV}`, rich: { a: { color: fg, fontSize: 17, fontWeight: 800, fontFamily: 'Inter, sans-serif' }, b: { color: mu, fontSize: 11, padding: [4, 0, 0, 0] } } }, itemStyle: { borderColor: css('--panel'), borderWidth: 3, borderRadius: 4 }, data }] });
       c.on('click', p => { const r = top[p.dataIndex]; if (r) go('op', r.vid); }); }
     const el3 = $('#ch-ads');
     if (el3) { const c = echarts.init(el3, null, { renderer: 'svg' }); charts.push(c);
