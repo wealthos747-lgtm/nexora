@@ -73,7 +73,7 @@ main { min-width: 0; padding-block: 22px 40px; padding-left: max(16px, env(safe-
 
 .btn { display: inline-flex; align-items: center; gap: 7px; padding: 9px 14px; border-radius: 11px; font-weight: 600; border: 1px solid var(--line); background: var(--panel); cursor: pointer; font-weight: 500; white-space: nowrap; }
 .btn:hover { border-color: var(--accent); }
-.btn.primary { background: linear-gradient(135deg, var(--accent), var(--violet)); border-color: transparent; color: #0B1020; font-weight: 700; }
+.btn.primary { background: linear-gradient(135deg, var(--accent), var(--violet)); border-color: transparent; color: var(--on-accent); font-weight: 700; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .star.on { color: var(--warn); }
 .vs { display: grid; grid-template-columns: minmax(0,1fr) auto minmax(0,1fr); gap: 10px; align-items: end; }
@@ -213,7 +213,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .ab-r { display: flex; align-items: center; gap: 10px; }
 .clock { color: var(--muted); font-size: .78rem; }
 .bell { position: relative; } .bell i { position: absolute; top: -2px; right: -3px; min-width: 15px; height: 15px; border-radius: 8px; background: var(--bad); color: #fff; font: 700 .62rem/15px var(--f-num); text-align: center; font-style: normal; }
-.avatar { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font: 700 .72rem var(--f-display); color: #06101F; background: linear-gradient(135deg, var(--accent), var(--violet)); }
+.avatar { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font: 700 .72rem var(--f-display); color: var(--on-accent); background: linear-gradient(135deg, var(--accent), var(--violet)); }
 .dot.live { width: 7px; height: 7px; background: var(--good); box-shadow: 0 0 0 0 var(--good); animation: pulse 1.8s infinite; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(61,220,151,.6); } 70% { box-shadow: 0 0 0 7px rgba(61,220,151,0); } 100% { box-shadow: 0 0 0 0 rgba(61,220,151,0); } }
 .ttl { font: 700 .78rem var(--f-display); letter-spacing: .12em; text-transform: none; color: var(--fg); }
@@ -257,9 +257,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .node .nm small { font: 500 .76rem var(--f-body); color: var(--muted); letter-spacing: 0; text-transform: none; grid-row: 1 / span 2; grid-column: 2; align-self: center; text-align: right; max-width: 110px; }
 .node.out.bad .nm b { color: var(--bad); } .node.out.warn .nm b { color: var(--amber); } .node.out.good .nm b { color: var(--good); }
 .core { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
-.chip { width: 132px; height: 132px; border-radius: 28px; display: grid; place-items: center; margin: 8px 0; background: linear-gradient(145deg, #0E2448, #0A1226); border: 1px solid var(--edge-hi); box-shadow: 0 0 0 6px rgba(60,203,255,.05), 0 0 40px rgba(60,203,255,.35), inset 0 0 30px rgba(60,203,255,.18); position: relative; }
-.chip::before { content: ""; position: absolute; inset: -14px; border-radius: 36px; border: 1px dashed rgba(60,203,255,.25); animation: spin 26s linear infinite; }
-.chip-in { width: 84px; height: 84px; color: #E9F1FF; filter: drop-shadow(0 0 10px rgba(60,203,255,.6)); }
+.core-chip { width: 132px; height: 132px; border-radius: 28px; display: grid; place-items: center; margin: 8px 0; background: linear-gradient(145deg, var(--core-a), var(--core-b)); border: 1px solid var(--edge-hi); box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 6%, transparent), 0 0 40px color-mix(in srgb, var(--accent) 35%, transparent), inset 0 0 30px color-mix(in srgb, var(--accent) 18%, transparent); position: relative; }
+.core-chip::before { content: ""; position: absolute; inset: -14px; border-radius: 36px; border: 1px dashed color-mix(in srgb, var(--accent) 30%, transparent); animation: spin 26s linear infinite; }
+.chip-in { width: 84px; height: 84px; color: var(--fg); filter: drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 60%, transparent)); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .core-stats { display: flex; gap: 14px; } .core-stats span { display: flex; flex-direction: column; align-items: center; font-size: .66rem; color: var(--muted); text-transform: none; letter-spacing: .08em; } .core-stats b { font: 700 1.25rem var(--f-num); color: var(--fg); letter-spacing: 0; }
 .cc-rev { padding: 14px 15px; display: flex; flex-direction: column; gap: 10px; }
@@ -268,7 +268,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .pl .tot { border-bottom: 0; } .pl .tot span { color: var(--fg); font-weight: 700; } .pl .tot b { font-size: 1.4rem; color: var(--amber); }
 .cc-row3 { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 14px; }
 @media (max-width: 1240px) { .cc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cc-neural { grid-column: 1 / -1; grid-row: auto; } .cc-side { grid-column: 1 / -1; grid-row: auto; flex-direction: row; flex-wrap: wrap; } .cc-side > section { flex: 1 1 300px; } .cc-row3 { grid-template-columns: 1fr 1fr; } .cc-row3 > :first-child { grid-column: 1 / -1; } }
-@media (max-width: 760px) { .cc-neural { grid-template-columns: 1fr; } .cc-neural canvas { display: none; } .chip { width: 96px; height: 96px; border-radius: 22px; } .chip-in { width: 60px; height: 60px; }   .cc-side { flex-direction: column; } .cc-row3 { grid-template-columns: 1fr; } .clock { display: none; } .cc-kpi .v { font-size: 1.7rem; } }
+@media (max-width: 760px) { .cc-neural { grid-template-columns: 1fr; } .cc-neural canvas { display: none; } .core-chip { width: 96px; height: 96px; border-radius: 22px; } .chip-in { width: 60px; height: 60px; }   .cc-side { flex-direction: column; } .cc-row3 { grid-template-columns: 1fr; } .clock { display: none; } .cc-kpi .v { font-size: 1.7rem; } }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: var(--bad-soft); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-weight: 500; z-index: 60; box-shadow: var(--shadow); }
 
@@ -341,6 +341,33 @@ table { font-size: var(--t-tbl); }
 .cc-kpi .dl { font-size: var(--t-cap); }
 .alert .t, .split-row, .act .tx, .pl span { font-size: var(--t-tbl); }
 @media (max-width: 860px) { :root { --n-lg: 1.32rem; --n-xl: 1.9rem; } h1, .cc-title { font-size: 1.5rem; } }
+
+.chip.on { color: var(--accent); border-color: var(--accent); background: var(--accent-soft); }
+.th-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.th { display: flex; flex-direction: column; gap: 8px; padding: 8px; border-radius: 14px; border: 1.5px solid var(--line); background: var(--panel2); cursor: pointer; text-align: left; color: var(--fg); }
+.th:hover { border-color: var(--edge-hi); } .th.on { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.th-prev { position: relative; height: 74px; border-radius: 10px; background: var(--tb); padding: 10px 10px 8px 22px; display: flex; gap: 6px; align-items: flex-end; overflow: hidden; }
+.th-split { background: linear-gradient(115deg, var(--tb) 50%, var(--tp) 50%); }
+.th-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 12px; background: var(--tp2); }
+.th-card { flex: 1; min-width: 0; border-radius: 7px; background: var(--tp); padding: 6px 7px; display: flex; flex-direction: column; gap: 5px; border: 1px solid color-mix(in srgb, var(--ta) 25%, transparent); }
+.th-card b { font: 800 .82rem var(--f-num); color: var(--tf); letter-spacing: -.02em; }
+.th-card em { height: 4px; border-radius: 3px; background: linear-gradient(90deg, var(--ta), var(--ts)); } .th-card em.s { background: var(--tm); width: 60%; }
+.th-name { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; font-weight: 600; font-size: var(--t-lbl); padding: 0 2px; }
+.th-name small { color: var(--muted); font-size: var(--t-cap); font-weight: 500; }
+
+/* ===== Themes (Settings → Appearance) ===== */
+:root { --on-accent: #0B1020; --core-a: #0E2448; --core-b: #0A1226; }
+:root[data-nx="midnight"] { --bg: #050A17; --panel: #0B1427; --panel2: #101C35; --line: #1A2A4C; --fg: #E9F1FF; --muted: #7F8FB3; --accent: #3CCBFF; --violet: #8F7CFF; --amber: #FFB547; --good: #3DDC97; --warn: #FFB547; --bad: #FF6B81; --accent-soft: rgba(60,203,255,0.12); --good-soft: rgba(61,220,151,0.13); --warn-soft: rgba(255,181,71,0.14); --bad-soft: rgba(255,107,129,0.14); --violet-soft: rgba(143,124,255,0.15); --c-rev: #3DDC97; --c-pro: #8F7CFF; --c-hyg: #3CCBFF; --c-nrv: #FFB547; --c-nkr: #7F8FB3; --edge: rgba(60,203,255,0.16); --edge-hi: rgba(60,203,255,0.45); --panel-grad: linear-gradient(160deg, rgba(60,203,255,0.06), rgba(11,20,39,0) 45%); --shadow: 0 0 0 1px rgba(60,203,255,0.03) inset, 0 10px 30px rgba(0,0,0,.45); --glow1: rgba(60,203,255,0.1); --glow2: rgba(143,124,255,0.09); --hero: linear-gradient(135deg, #101C35 0%, #0B1427 55%, #101C35 100%); --tile-hi: rgba(255,255,255,.035); --on-accent: #0B1020; --core-a: #101C35; --core-b: #050A17; color-scheme: dark; }
+:root[data-nx="obsidian"] { --bg: #0B0A08; --panel: #14120E; --panel2: #1C1914; --line: #2E2920; --fg: #F4EEE2; --muted: #A1978A; --accent: #E3B865; --violet: #C9A27A; --amber: #F0A84B; --good: #7BD39A; --warn: #F0A84B; --bad: #F27C6B; --accent-soft: rgba(227,184,101,0.12); --good-soft: rgba(123,211,154,0.13); --warn-soft: rgba(240,168,75,0.14); --bad-soft: rgba(242,124,107,0.14); --violet-soft: rgba(201,162,122,0.15); --c-rev: #7BD39A; --c-pro: #C9A27A; --c-hyg: #E3B865; --c-nrv: #F0A84B; --c-nkr: #A1978A; --edge: rgba(227,184,101,0.16); --edge-hi: rgba(227,184,101,0.45); --panel-grad: linear-gradient(160deg, rgba(227,184,101,0.06), rgba(20,18,14,0) 45%); --shadow: 0 0 0 1px rgba(227,184,101,0.03) inset, 0 10px 30px rgba(0,0,0,.45); --glow1: rgba(227,184,101,0.1); --glow2: rgba(201,162,122,0.09); --hero: linear-gradient(135deg, #1C1914 0%, #14120E 55%, #1C1914 100%); --tile-hi: rgba(255,255,255,.035); --on-accent: #0B1020; --core-a: #1C1914; --core-b: #0B0A08; color-scheme: dark; }
+:root[data-nx="aurora"] { --bg: #04141A; --panel: #0A1F27; --panel2: #0F2A33; --line: #1A3D47; --fg: #E4F5F1; --muted: #84A6A5; --accent: #2EE6B6; --violet: #5FB7FF; --amber: #F7C46C; --good: #2EE6B6; --warn: #F7C46C; --bad: #FF7C8A; --accent-soft: rgba(46,230,182,0.12); --good-soft: rgba(46,230,182,0.13); --warn-soft: rgba(247,196,108,0.14); --bad-soft: rgba(255,124,138,0.14); --violet-soft: rgba(95,183,255,0.15); --c-rev: #2EE6B6; --c-pro: #5FB7FF; --c-hyg: #2EE6B6; --c-nrv: #F7C46C; --c-nkr: #84A6A5; --edge: rgba(46,230,182,0.16); --edge-hi: rgba(46,230,182,0.45); --panel-grad: linear-gradient(160deg, rgba(46,230,182,0.06), rgba(10,31,39,0) 45%); --shadow: 0 0 0 1px rgba(46,230,182,0.03) inset, 0 10px 30px rgba(0,0,0,.45); --glow1: rgba(46,230,182,0.1); --glow2: rgba(95,183,255,0.09); --hero: linear-gradient(135deg, #0F2A33 0%, #0A1F27 55%, #0F2A33 100%); --tile-hi: rgba(255,255,255,.035); --on-accent: #0B1020; --core-a: #0F2A33; --core-b: #04141A; color-scheme: dark; }
+:root[data-nx="plum"] { --bg: #110A1C; --panel: #1A1128; --panel2: #231735; --line: #38284F; --fg: #F2EBFC; --muted: #A697BF; --accent: #C38BFF; --violet: #F0A6E8; --amber: #FBBF4A; --good: #5BE08E; --warn: #FBBF4A; --bad: #FB7A94; --accent-soft: rgba(195,139,255,0.12); --good-soft: rgba(91,224,142,0.13); --warn-soft: rgba(251,191,74,0.14); --bad-soft: rgba(251,122,148,0.14); --violet-soft: rgba(240,166,232,0.15); --c-rev: #5BE08E; --c-pro: #F0A6E8; --c-hyg: #C38BFF; --c-nrv: #FBBF4A; --c-nkr: #A697BF; --edge: rgba(195,139,255,0.16); --edge-hi: rgba(195,139,255,0.45); --panel-grad: linear-gradient(160deg, rgba(195,139,255,0.06), rgba(26,17,40,0) 45%); --shadow: 0 0 0 1px rgba(195,139,255,0.03) inset, 0 10px 30px rgba(0,0,0,.45); --glow1: rgba(195,139,255,0.1); --glow2: rgba(240,166,232,0.09); --hero: linear-gradient(135deg, #231735 0%, #1A1128 55%, #231735 100%); --tile-hi: rgba(255,255,255,.035); --on-accent: #0B1020; --core-a: #231735; --core-b: #110A1C; color-scheme: dark; }
+:root[data-nx="graphite"] { --bg: #0D0E10; --panel: #16181B; --panel2: #1D2024; --line: #2B2F35; --fg: #ECEEF1; --muted: #8F959D; --accent: #7CB8FF; --violet: #A99BFF; --amber: #F5B451; --good: #5FD69B; --warn: #F5B451; --bad: #F2737F; --accent-soft: rgba(124,184,255,0.12); --good-soft: rgba(95,214,155,0.13); --warn-soft: rgba(245,180,81,0.14); --bad-soft: rgba(242,115,127,0.14); --violet-soft: rgba(169,155,255,0.15); --c-rev: #5FD69B; --c-pro: #A99BFF; --c-hyg: #7CB8FF; --c-nrv: #F5B451; --c-nkr: #8F959D; --edge: rgba(124,184,255,0.16); --edge-hi: rgba(124,184,255,0.45); --panel-grad: linear-gradient(160deg, rgba(124,184,255,0.06), rgba(22,24,27,0) 45%); --shadow: 0 0 0 1px rgba(124,184,255,0.03) inset, 0 10px 30px rgba(0,0,0,.45); --glow1: rgba(124,184,255,0.1); --glow2: rgba(169,155,255,0.09); --hero: linear-gradient(135deg, #1D2024 0%, #16181B 55%, #1D2024 100%); --tile-hi: rgba(255,255,255,.035); --on-accent: #0B1020; --core-a: #1D2024; --core-b: #0D0E10; color-scheme: dark; }
+:root[data-nx="ruby"] { --bg: #12080B; --panel: #1C0F14; --panel2: #26141B; --line: #3A1F29; --fg: #FBECEF; --muted: #B0939B; --accent: #FF4D73; --violet: #FF9A6B; --amber: #FFB547; --good: #4FD1A1; --warn: #FFB547; --bad: #FF6B6B; --accent-soft: rgba(255,77,115,0.12); --good-soft: rgba(79,209,161,0.13); --warn-soft: rgba(255,181,71,0.14); --bad-soft: rgba(255,107,107,0.14); --violet-soft: rgba(255,154,107,0.15); --c-rev: #4FD1A1; --c-pro: #FF9A6B; --c-hyg: #FF4D73; --c-nrv: #FFB547; --c-nkr: #B0939B; --edge: rgba(255,77,115,0.16); --edge-hi: rgba(255,77,115,0.45); --panel-grad: linear-gradient(160deg, rgba(255,77,115,0.06), rgba(28,15,20,0) 45%); --shadow: 0 0 0 1px rgba(255,77,115,0.03) inset, 0 10px 30px rgba(0,0,0,.45); --glow1: rgba(255,77,115,0.1); --glow2: rgba(255,154,107,0.09); --hero: linear-gradient(135deg, #26141B 0%, #1C0F14 55%, #26141B 100%); --tile-hi: rgba(255,255,255,.035); --on-accent: #0B1020; --core-a: #26141B; --core-b: #12080B; color-scheme: dark; }
+:root[data-nx="pearl"] { --bg: #F3F5FA; --panel: #FFFFFF; --panel2: #EDF1F8; --line: #D8DFEC; --fg: #0E1526; --muted: #5A6683; --accent: #0B78A8; --violet: #6352CF; --amber: #C77A0A; --good: #178A5C; --warn: #C77A0A; --bad: #C93A52; --accent-soft: rgba(11,120,168,0.09); --good-soft: rgba(23,138,92,0.1); --warn-soft: rgba(199,122,10,0.11); --bad-soft: rgba(201,58,82,0.1); --violet-soft: rgba(99,82,207,0.1); --c-rev: #178A5C; --c-pro: #6352CF; --c-hyg: #0B78A8; --c-nrv: #C77A0A; --c-nkr: #5A6683; --edge: #D8DFEC; --edge-hi: rgba(11,120,168,0.55); --panel-grad: linear-gradient(160deg, rgba(11,120,168,0.04), rgba(255,255,255,0) 45%); --shadow: 0 1px 2px rgba(14,21,38,.06), 0 6px 18px rgba(14,21,38,.06); --glow1: rgba(11,120,168,0.07); --glow2: rgba(99,82,207,0.06); --hero: linear-gradient(135deg, #EDF1F8 0%, #FFFFFF 55%, #EDF1F8 100%); --tile-hi: rgba(255,255,255,.7); --on-accent: #FFFFFF; --core-a: #EDF1F8; --core-b: #F3F5FA; color-scheme: light; }
+:root[data-nx="ivory"] { --bg: #F7F3EC; --panel: #FFFDF9; --panel2: #F1EBE0; --line: #E2D8C7; --fg: #1F1A14; --muted: #6F6556; --accent: #9A6A12; --violet: #4F5BD5; --amber: #B86E0A; --good: #2C7A4B; --warn: #B86E0A; --bad: #B83A32; --accent-soft: rgba(154,106,18,0.09); --good-soft: rgba(44,122,75,0.1); --warn-soft: rgba(184,110,10,0.11); --bad-soft: rgba(184,58,50,0.1); --violet-soft: rgba(79,91,213,0.1); --c-rev: #2C7A4B; --c-pro: #4F5BD5; --c-hyg: #9A6A12; --c-nrv: #B86E0A; --c-nkr: #6F6556; --edge: #E2D8C7; --edge-hi: rgba(154,106,18,0.55); --panel-grad: linear-gradient(160deg, rgba(154,106,18,0.04), rgba(255,253,249,0) 45%); --shadow: 0 1px 2px rgba(14,21,38,.06), 0 6px 18px rgba(14,21,38,.06); --glow1: rgba(154,106,18,0.07); --glow2: rgba(79,91,213,0.06); --hero: linear-gradient(135deg, #F1EBE0 0%, #FFFDF9 55%, #F1EBE0 100%); --tile-hi: rgba(255,255,255,.7); --on-accent: #FFFFFF; --core-a: #F1EBE0; --core-b: #F7F3EC; color-scheme: light; }
+:root[data-nx="rose"] { --bg: #FBF1F2; --panel: #FFFFFF; --panel2: #FBE8EB; --line: #F0D3D9; --fg: #1B1416; --muted: #7A6167; --accent: #D61F4D; --violet: #6D3AE0; --amber: #C9700A; --good: #0E8F6C; --warn: #C9700A; --bad: #D12F2F; --accent-soft: rgba(214,31,77,0.09); --good-soft: rgba(14,143,108,0.1); --warn-soft: rgba(201,112,10,0.11); --bad-soft: rgba(209,47,47,0.1); --violet-soft: rgba(109,58,224,0.1); --c-rev: #0E8F6C; --c-pro: #6D3AE0; --c-hyg: #D61F4D; --c-nrv: #C9700A; --c-nkr: #7A6167; --edge: #F0D3D9; --edge-hi: rgba(214,31,77,0.55); --panel-grad: linear-gradient(160deg, rgba(214,31,77,0.04), rgba(255,255,255,0) 45%); --shadow: 0 1px 2px rgba(14,21,38,.06), 0 6px 18px rgba(14,21,38,.06); --glow1: rgba(214,31,77,0.07); --glow2: rgba(109,58,224,0.06); --hero: linear-gradient(135deg, #FBE8EB 0%, #FFFFFF 55%, #FBE8EB 100%); --tile-hi: rgba(255,255,255,.7); --on-accent: #FFFFFF; --core-a: #FBE8EB; --core-b: #FBF1F2; color-scheme: light; }
+:root[data-nx="mint"] { --bg: #EFF7F4; --panel: #FFFFFF; --panel2: #E3F1EC; --line: #CDE3DB; --fg: #0F1E1A; --muted: #557069; --accent: #0E8C6E; --violet: #3466D6; --amber: #B97709; --good: #0E8C6E; --warn: #B97709; --bad: #C63B4B; --accent-soft: rgba(14,140,110,0.09); --good-soft: rgba(14,140,110,0.1); --warn-soft: rgba(185,119,9,0.11); --bad-soft: rgba(198,59,75,0.1); --violet-soft: rgba(52,102,214,0.1); --c-rev: #0E8C6E; --c-pro: #3466D6; --c-hyg: #0E8C6E; --c-nrv: #B97709; --c-nkr: #557069; --edge: #CDE3DB; --edge-hi: rgba(14,140,110,0.55); --panel-grad: linear-gradient(160deg, rgba(14,140,110,0.04), rgba(255,255,255,0) 45%); --shadow: 0 1px 2px rgba(14,21,38,.06), 0 6px 18px rgba(14,21,38,.06); --glow1: rgba(14,140,110,0.07); --glow2: rgba(52,102,214,0.06); --hero: linear-gradient(135deg, #E3F1EC 0%, #FFFFFF 55%, #E3F1EC 100%); --tile-hi: rgba(255,255,255,.7); --on-accent: #FFFFFF; --core-a: #E3F1EC; --core-b: #EFF7F4; color-scheme: light; }
+
 </style>
 
 <div class="shell">
@@ -811,6 +838,7 @@ var NX = (function () {
 <script>
 // ======================= ICONS =======================
 const I = {
+  grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>',
   bell: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15zM10 20a2 2 0 0 0 4 0"/></svg>',
   cmp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 20V10M12 20V4M18 20v-7"/></svg>',
   award: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="9" r="5.5"/><path d="M8.5 13.5 7 21l5-2.5 5 2.5-1.5-7.5"/></svg>',
@@ -839,7 +867,7 @@ const I = {
 };
 const NAV = [
   { id: 'pulse', label: 'Pulse', icon: 'pulse' }, { id: 'operators', label: 'Operators', icon: 'ops' }, { id: 'services', label: 'Services', icon: 'svc' },
-  { id: 'routes', label: 'Routes', icon: 'route' }, { id: 'ads', label: 'Red Deal & Ads', icon: 'ads' }, { id: 'compare', label: 'Compare', icon: 'cmp' }, { sep: 1 },
+  { id: 'routes', label: 'Routes', icon: 'route' }, { id: 'ads', label: 'Red Deal & Ads', icon: 'ads' }, { id: 'compare', label: 'Compare', icon: 'cmp' }, { id: 'reports', label: 'My reports', icon: 'grid' }, { sep: 1 },
   { id: 'kra', label: 'KRA scorecard', icon: 'kra' }, { id: 'trackers', label: 'Trackers', icon: 'trk' }, { id: 'appraisal', label: 'Appraisal', icon: 'award' }, { id: 'log', label: 'Work log', icon: 'log' }, { id: 'mail', label: 'Weekly mail', icon: 'mail' }, { id: 'formula', label: 'Formula Lab', icon: 'fx' }, { sep: 1 },
   { id: 'upload', label: 'Upload data', icon: 'up' }, { id: 'settings', label: 'Settings', icon: 'set' },
 ];
@@ -926,7 +954,7 @@ function snapshot() {
 function renderNav() {
   $('#rail').innerHTML = `<div class="brand"><div class="mark" style="background:none;width:34px;height:34px;color:var(--fg)">${LOGO}</div><b>Nexora</b></div>` +
     NAV.map(n => n.sep ? '<div class="nav-sep"></div>' : `<button class="nav-btn" data-go="${n.id}" ${isCur(n.id) ? 'aria-current="page"' : ''}>${I[n.icon]}<span>${n.label}</span></button>`).join('') +
-    `<div class="rail-foot">${S.demo ? 'Showing demo data' : 'Data stays in this browser'}<br>v0.1 · Phase 1 preview</div>`;
+    `<div class="rail-foot">${S.demo ? 'Showing demo data' : (typeof SY !== 'undefined' && SY.user ? 'Synced to your cloud' : 'Saved on this device')}<br>Nexora v1.1</div>`;
   const dock = [['pulse', 'Pulse', 'pulse'], ['operators', 'Operators', 'ops'], ['upload', 'Upload', 'plus'], ['log', 'Work log', 'log'], ['more', 'More', 'more']];
   $('#dock').innerHTML = dock.map(([id, l, ic]) => `<button class="nav-btn ${id === 'upload' ? 'plus' : ''}" data-go="${id}" ${isCur(id) ? 'aria-current="page"' : ''}>${id === 'upload' ? `<span class="ic">${I[ic]}</span>` : I[ic]}<span>${l}</span></button>`).join('');
 }
@@ -939,7 +967,7 @@ function go(v, arg) {
 }
 function openMore() {
   $('#overlay').innerHTML = `<div class="sheet-bg" data-close></div><div class="sheet" role="dialog" aria-label="More">` +
-    [['appraisal', 'Appraisal', 'award'], ['kra', 'KRA', 'kra'], ['compare', 'Compare', 'cmp'], ['trackers', 'Trackers', 'trk'], ['services', 'Services', 'svc'], ['routes', 'Routes', 'route'], ['ads', 'Red Deal', 'ads'], ['mail', 'Weekly mail', 'mail'], ['formula', 'Formula Lab', 'fx'], ['settings', 'Settings', 'set']]
+    [['appraisal', 'Appraisal', 'award'], ['kra', 'KRA', 'kra'], ['compare', 'Compare', 'cmp'], ['reports', 'My reports', 'grid'], ['trackers', 'Trackers', 'trk'], ['services', 'Services', 'svc'], ['routes', 'Routes', 'route'], ['ads', 'Red Deal', 'ads'], ['mail', 'Weekly mail', 'mail'], ['formula', 'Formula Lab', 'fx'], ['settings', 'Settings', 'set']]
       .map(([id, l, ic]) => `<button class="nav-btn" data-go="${id}">${I[ic]}<span>${l}</span></button>`).join('') + '</div>';
 }
 function closeOverlay() { $('#overlay').innerHTML = ''; }
@@ -951,10 +979,11 @@ document.addEventListener('click', e => {
 
 // ======================= RENDER =======================
 function render() {
+  { const th = S.settings.theme || 'midnight'; if (document.documentElement.dataset.nx !== th) applyTheme(th === 'system' ? null : th); }
   charts.forEach(c => { try { c.dispose(); } catch (e) { } }); charts = [];
   renderNav();
   const v = $('#view');
-  const fn = { pulse: vPulse, operators: vOperators, op: vOp, services: vServices, routes: vRoutes, ads: vAds, log: vLog, mail: vMail, formula: vFormula, kra: vKra, trackers: vTrackers, compare: vCompare, appraisal: vAppraisal, upload: vUpload, settings: vSettings }[VIEW] || vPulse;
+  const fn = { pulse: vPulse, operators: vOperators, op: vOp, services: vServices, routes: vRoutes, ads: vAds, log: vLog, mail: vMail, formula: vFormula, kra: vKra, trackers: vTrackers, compare: vCompare, reports: vReports, appraisal: vAppraisal, upload: vUpload, settings: vSettings }[VIEW] || vPulse;
   v.innerHTML = appBar() + (S.demo && VIEW !== 'upload' ? demoBanner() : '') + fn(); tick(); syncBadge();
   (afterRender[VIEW] || (() => { }))();
 }
@@ -1240,7 +1269,7 @@ afterRender.mail = () => {
 // ---------- FORMULA LAB ----------
 const DS_LABEL = { rider: 'Rider RT / GD', tam_sl: 'TAM pitch tracker', bc_cohort: 'Bus-cancel cohort', rd_trend: 'Red Deal trend', kam_bo: 'KAM dashboard', route_market: 'Route market share', yb_bo: 'YB operator-wise', yb_service: 'YB service-wise', service_sales: 'Service sales', api_cancel: 'API cancellations', service_rd: 'Service information', bo_wise: 'Operators (services)', ads_sl: 'SL campaigns', ads_srp: 'SRP ads', kam_one: 'KAM single operator' };
 let fxDs = null, fxHF = null, fxLoaded = false;
-function fxSets() { const seen = new Map(); [...mineDS()].sort((a, b) => b.at - a.at).forEach(d => { const key = d.t + '|' + (d.window || 'MTD'); if (!seen.has(key) && d.rows.length) seen.set(key, d); }); return [...seen.values()]; }
+function fxSets() { const seen = new Map(); [...mineDS()].sort((a, b) => b.at - a.at).forEach(d => { const key = d.t === 'custom' ? d.id : d.t + '|' + (d.window || 'MTD'); if (!seen.has(key) && d.rows.length) seen.set(key, d); }); return [...seen.values()]; }
 const colL = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
 function vFormula() {
   const sets = fxSets(); if (!fxDs || !sets.find(d => d.id === fxDs)) fxDs = sets[0] && sets[0].id;
@@ -1250,7 +1279,7 @@ function vFormula() {
   const ex = d ? [`=SUM(${colOf(cols, ['gmv', 'gmvM', 'revenue', 'cost', 'seats', 'txns', 'apiCancelled', 'active'])}2:${colOf(cols, ['gmv', 'gmvM', 'revenue', 'cost', 'seats', 'txns', 'apiCancelled', 'active'])}${n})`, `=COUNTIF(${colOf(cols, ['seats', 'liq', 'assigned'])}2:${colOf(cols, ['seats', 'liq', 'assigned'])}${n},0)`, `=AVERAGE(${colOf(cols, ['liq', 'occ', 'assigned', 'roas', 'share'])}2:${colOf(cols, ['liq', 'occ', 'assigned', 'roas', 'share'])}${n})`, `=ROUND(SUMPRODUCT(${colOf(cols, ['occ', 'liq', 'assigned'])}2:${colOf(cols, ['occ', 'liq', 'assigned'])}${n},${colOf(cols, ['seats', 'txns', 'clicks'])}2:${colOf(cols, ['seats', 'txns', 'clicks'])}${n})/SUM(${colOf(cols, ['seats', 'txns', 'clicks'])}2:${colOf(cols, ['seats', 'txns', 'clicks'])}${n}),2)`] : [];
   return head('Formula Lab', { eyebrow: 'Excel-compatible', text: 'Run any Excel formula on an uploaded report: SUMIFS, XLOOKUP, COUNTIFS, AVERAGEIFS, FILTER, TEXT, dates and ~400 more.' }) +
     (d ? `<div class="grid2"><section class="card">
-      <div class="field"><label for="fxds">Report</label><select id="fxds">${sets.map(s => `<option value="${esc(s.id)}" ${s.id === fxDs ? 'selected' : ''}>${esc(DS_LABEL[s.t] || s.t)}${s.window && s.window !== 'MTD' ? ' · ' + esc(s.window) : ''} (${fmt(s.rows.length)} rows)</option>`).join('')}</select></div>
+      <div class="field"><label for="fxds">Report</label><select id="fxds">${sets.map(s => `<option value="${esc(s.id)}" ${s.id === fxDs ? 'selected' : ''}>${esc(s.t === 'custom' ? s.name : (DS_LABEL[s.t] || s.t))}${s.window && s.window !== 'MTD' ? ' · ' + esc(s.window) : ''} (${fmt(s.rows.length)} rows)</option>`).join('')}</select></div>
       <div class="field"><label for="fxin">Formula</label><input type="text" id="fxin" class="mono" value="${esc(ex[0] || '=1+1')}" spellcheck="false" autocomplete="off"></div>
       <div class="row"><button class="btn primary" id="fxrun">Calculate</button><span class="muted" id="fxstat">Rows 2–${n} hold data · row 1 is the header</span></div>
       <div class="result" id="fxout" aria-live="polite">–</div>
@@ -1857,7 +1886,7 @@ function vPulse() {
         <div class="col streams"><div class="card-h"><span class="ttl">Data streams</span><span class="pill good"><span class="dot live"></span>Live</span></div>
           ${streams.map(([t, n]) => `<div class="node in" data-go="upload"><span class="ic">${I[LBL[t][1]]}</span><span class="nm">${LBL[t][0]}<b>${fmt(n)}</b><small>rows</small></span></div>`).join('') || '<div class="empty">Upload reports to start the flow.</div>'}</div>
         <div class="core"><div class="ttl" style="text-align:center">Nexora core</div><div class="muted" style="text-align:center;font-size:.76rem">Processing ${fmt(totalRows)} rows · ${Object.keys(byT).length} report types</div>
-          <div class="chip" id="chip"><div class="chip-in">${LOGO}</div></div>
+          <div class="core-chip" id="chip"><div class="chip-in">${LOGO}</div></div>
           <div class="core-stats"><span><b>${M.rows.length}</b>operators</span><span><b>${fmt(M.kpi.services)}</b>services</span><span><b>${M.alerts.length}</b>signals</span></div></div>
         <div class="col outs"><div class="card-h"><span class="ttl">Insight output</span><span class="pill warn">Real-time</span></div>
           ${outs.map(o => `<button class="node out ${o.c}" data-go="${o.go}"><span class="ic">${I[o.ic]}</span><span class="nm">${o.t}<b>${typeof o.v === 'number' ? fmt(o.v) : o.v}</b><small>${o.sub}</small></span></button>`).join('')}</div>
@@ -1979,7 +2008,9 @@ async function cloudPull(first) {
       throw error;
     }
     const remote = JSON.parse(await gunz(data));
-    if (S.demo || (remote.savedAt || 0) > (S.savedAt || 0)) {
+    const localEmpty = !S.datasets.length && !S.log.length && !Object.keys(S.kra || {}).some(k => (S.kra[k].items || []).length);
+    if (S.demo || localEmpty || (remote.savedAt || 0) > (S.savedAt || 0)) {
+      if (remote.settings && remote.settings.theme) applyTheme(remote.settings.theme === 'system' ? null : remote.settings.theme);
       S = Object.assign({}, S, remote); S.demo = false; rebuild(); await DB.set('state', S); SY.last = Date.now(); SY.state = 'synced';
       if (!first) toast('Updated from your other device'); render();
     } else if ((S.savedAt || 0) > (remote.savedAt || 0)) { SY.busy = false; await cloudPush(); return; }
@@ -2030,6 +2061,157 @@ function bindCloud() {
   const o = $('#sy-out'); if (o) o.addEventListener('click', async () => { await sb.auth.signOut(); SY.user = null; SY.state = 'local'; render(); toast('Signed out — data stays on this device'); });
 }
 
+// ---------- THEMES ----------
+const THEMES = [{ id: 'midnight', label: 'Midnight', mode: 'dark', bg: '#050A17', panel: '#0B1427', panel2: '#101C35', fg: '#E9F1FF', accent: '#3CCBFF', second: '#8F7CFF', amber: '#FFB547' }, { id: 'obsidian', label: 'Obsidian Gold', mode: 'dark', bg: '#0B0A08', panel: '#14120E', panel2: '#1C1914', fg: '#F4EEE2', accent: '#E3B865', second: '#C9A27A', amber: '#F0A84B' }, { id: 'aurora', label: 'Aurora', mode: 'dark', bg: '#04141A', panel: '#0A1F27', panel2: '#0F2A33', fg: '#E4F5F1', accent: '#2EE6B6', second: '#5FB7FF', amber: '#F7C46C' }, { id: 'plum', label: 'Royal Plum', mode: 'dark', bg: '#110A1C', panel: '#1A1128', panel2: '#231735', fg: '#F2EBFC', accent: '#C38BFF', second: '#F0A6E8', amber: '#FBBF4A' }, { id: 'graphite', label: 'Graphite', mode: 'dark', bg: '#0D0E10', panel: '#16181B', panel2: '#1D2024', fg: '#ECEEF1', accent: '#7CB8FF', second: '#A99BFF', amber: '#F5B451' }, { id: 'ruby', label: 'Ruby Night', mode: 'dark', bg: '#12080B', panel: '#1C0F14', panel2: '#26141B', fg: '#FBECEF', accent: '#FF4D73', second: '#FF9A6B', amber: '#FFB547' }, { id: 'pearl', label: 'Pearl', mode: 'light', bg: '#F3F5FA', panel: '#FFFFFF', panel2: '#EDF1F8', fg: '#0E1526', accent: '#0B78A8', second: '#6352CF', amber: '#C77A0A' }, { id: 'ivory', label: 'Ivory Gold', mode: 'light', bg: '#F7F3EC', panel: '#FFFDF9', panel2: '#F1EBE0', fg: '#1F1A14', accent: '#9A6A12', second: '#4F5BD5', amber: '#B86E0A' }, { id: 'rose', label: 'Rose', mode: 'light', bg: '#FBF1F2', panel: '#FFFFFF', panel2: '#FBE8EB', fg: '#1B1416', accent: '#D61F4D', second: '#6D3AE0', amber: '#C9700A' }, { id: 'mint', label: 'Mint Cloud', mode: 'light', bg: '#EFF7F4', panel: '#FFFFFF', panel2: '#E3F1EC', fg: '#0F1E1A', accent: '#0E8C6E', second: '#3466D6', amber: '#B97709' }];
+
+function applyTheme(id) {
+  const r = document.documentElement, t = THEMES.find(x => x.id === id);
+  if (!t) { delete r.dataset.nx; delete r.dataset.theme; }
+  else { r.dataset.nx = t.id; r.dataset.theme = t.mode; }
+  try { localStorage.setItem('nx-theme', id || 'system'); } catch (e) { }
+  let m = document.querySelector('meta[name="theme-color"]'); if (m) m.setAttribute('content', t ? t.bg : '#050A17');
+}
+(function () { let id = 'midnight'; try { id = localStorage.getItem('nx-theme') || 'midnight'; } catch (e) { } applyTheme(id === 'system' ? null : id); })();
+function appearanceCard() {
+  const cur = S.settings.theme || 'midnight';
+  const sw = t => `<button class="th ${cur === t.id ? 'on' : ''}" data-theme-pick="${t.id}" aria-pressed="${cur === t.id}" style="--tb:${t.bg};--tp:${t.panel};--tp2:${t.panel2};--tf:${t.fg};--ta:${t.accent};--ts:${t.second};--tm:${t.amber}">
+      <span class="th-prev"><i class="th-bar"></i><span class="th-card"><b>₹29.13</b><em></em></span><span class="th-card"><b>71.0%</b><em class="s"></em></span></span>
+      <span class="th-name">${t.label}<small>${t.mode === 'dark' ? 'Dark' : 'Light'}</small></span></button>`;
+  return `<section class="card"><div class="card-h"><h2>Appearance</h2><span class="muted" style="font-size:var(--t-cap)">Saved on this device and synced</span></div>
+    <div class="th-grid">${THEMES.map(sw).join('')}
+    <button class="th ${cur === 'system' ? 'on' : ''}" data-theme-pick="system" aria-pressed="${cur === 'system'}" style="--tb:#0B1427;--tp:#F3F5FA;--tp2:#E3E8F2;--tf:#0E1526;--ta:#3CCBFF;--ts:#6352CF;--tm:#C77A0A"><span class="th-prev th-split"><i class="th-bar"></i><span class="th-card"><b>Auto</b><em></em></span></span><span class="th-name">Match device<small>Light or dark</small></span></button></div></section>`;
+}
+function bindAppearance() {
+  document.querySelectorAll('[data-theme-pick]').forEach(b => b.addEventListener('click', () => {
+    const id = b.dataset.themePick; S.settings.theme = id; applyTheme(id === 'system' ? null : id); save(); render();
+    toast((THEMES.find(t => t.id === id) || { label: 'Match device' }).label + ' theme');
+  }));
+}
+
+// ---------- YOUR OWN REPORTS (any Excel / CSV Nexora does not know yet) ----------
+const ID_RX = /(^|[^a-z])(id|code|no\.?|num|number|phone|mobile|pin|pincode|zip|serviceid|vendorid|opid|bo ?id|bo ?code|operatorid)([^a-z]|$)/i;
+const OWNER_RX = /\b(bde|kam|owner|account manager|bde name|sales ?person|executive|assigned to)\b/i;
+function cleanName(fileName, sheet, multi) {
+  let n = String(fileName).replace(/\.(csv|xlsx|xls)$/i, '').replace(/^[0-9a-f]{8}-/i, '').replace(/[_]+/g, ' ').replace(/\s+/g, ' ').trim();
+  if (/^\d{8}[_ ]?\d{6}$/.test(n.replace(/\s/g, '_'))) n = 'Report ' + n.slice(0, 4) + '-' + n.slice(4, 6) + '-' + n.slice(6, 8);
+  if (multi && sheet) n += ' · ' + sheet;
+  return n.charAt(0).toUpperCase() + n.slice(1);
+}
+function headerRow(aoa) {
+  let best = 0, score = -1;
+  for (let i = 0; i < Math.min(aoa.length, 15); i++) {
+    const r = aoa[i] || []; const filled = r.filter(c => c !== null && c !== undefined && String(c).trim() !== '');
+    const textish = filled.filter(c => typeof c === 'string' && isNaN(+c)).length;
+    const s = textish * 2 + filled.length; if (filled.length >= 2 && s > score) { score = s; best = i; }
+  }
+  return best;
+}
+function profileCols(headers, rows) {
+  return headers.map(h => {
+    const vals = rows.map(r => r[h]).filter(v => v !== null && v !== undefined && String(v).trim() !== '');
+    const nums = vals.map(v => NX.num(v)).filter(v => v !== null);
+    const numeric = vals.length > 0 && nums.length >= vals.length * 0.8;
+    const ints = numeric && nums.every(n => Number.isInteger(n));
+    const distinct = new Set(vals.map(String)).size;
+    let kind = 'text';
+    if (vals.length && vals.every(v => /^\d{4}-\d{2}-\d{2}/.test(String(v)))) kind = 'date';
+    else if (numeric && (ID_RX.test(h) || (ints && distinct === vals.length && Math.min(...nums) > 999 && vals.length > 5))) kind = 'id';
+    else if (numeric) kind = /%|percent|share|ratio|rate|occ|liq/i.test(h) ? 'pct' : 'num';
+    return { h, kind, distinct, filled: vals.length };
+  });
+}
+function importCustom(aoa, fileName, sheet, multi) {
+  const hi = headerRow(aoa); const raw = (aoa[hi] || []).map(c => c === null || c === undefined ? '' : String(c).trim());
+  const seen = {}; const headers = raw.map((h, i) => { let k = h || ('Column ' + (i + 1)); if (seen[k]) k += ' ' + (++seen[k]); else seen[k] = 1; return k; });
+  const rows = [];
+  for (let i = hi + 1; i < aoa.length; i++) {
+    const r = aoa[i]; if (!r || r.every(c => c === null || c === undefined || String(c).trim() === '')) continue;
+    const o = {}; headers.forEach((h, j) => { let v = r[j]; if (v instanceof Date) v = localISO(v); o[h] = v === undefined ? null : v; }); rows.push(o);
+  }
+  if (!rows.length) return null;
+  const cols = profileCols(headers, rows);
+  const names = myNames().map(NX.normName);
+  const owner = cols.find(c => c.kind === 'text' && OWNER_RX.test(c.h) && rows.some(r => names.includes(NX.normName(r[c.h])) || names.some(n => NX.normName(r[c.h]).split(' ')[0] === n.split(' ')[0])));
+  const name = cleanName(fileName, sheet, multi);
+  return { id: 'custom|' + name, t: 'custom', name, file: fileName, sheet, rows, cols, ownerCol: owner ? owner.h : null, at: Date.now() };
+}
+const customSets = () => S.datasets.filter(d => d.t === 'custom').sort((a, b) => a.name.localeCompare(b.name));
+let crState = {};
+function crRows(d) {
+  const st = crState[d.id] || {}; let rows = d.rows;
+  if (d.ownerCol && st.mine !== false) { const names = myNames().map(NX.normName); rows = rows.filter(r => { const v = NX.normName(r[d.ownerCol]); return names.includes(v) || names.some(n => v.split(' ')[0] === n.split(' ')[0]); }); }
+  if (st.q) { const q = st.q.toLowerCase(); rows = rows.filter(r => Object.values(r).some(v => String(v ?? '').toLowerCase().includes(q))); }
+  return rows;
+}
+const cfmt = (v, c) => { if (v === null || v === undefined || v === '') return '<span class="muted">–</span>'; if (c.kind === 'id' || c.kind === 'text' || c.kind === 'date') return esc(v); const n = NX.num(v); if (n === null) return esc(v); return c.kind === 'pct' ? fmt(n, Math.abs(n) < 10 ? 2 : 1) : fmt(n, Number.isInteger(n) ? 0 : 2); };
+function vReports() {
+  const sets = customSets();
+  if (!sets.length) return head('My reports', { eyebrow: 'Your own files', text: 'Any Excel or CSV Nexora does not recognise lands here under its file name, with totals, a chart and a searchable table.' }) +
+    `<div class="empty">No reports yet. Upload any file from <a href="#" data-go="upload">Upload data</a>.</div>`;
+  let d = sets.find(x => x.id === VIEWARG) || sets[0];
+  const st = crState[d.id] = crState[d.id] || {};
+  const rows = crRows(d), nums = d.cols.filter(c => c.kind === 'num' || c.kind === 'pct');
+  const groups = d.cols.filter(c => c.kind === 'text' && c.distinct >= 2 && c.distinct <= 300 && c.h !== d.ownerCol);
+  if (!st.by && groups.length) st.by = (groups.find(c => /name|operator|bo|route|travels|city|region|category|type/i.test(c.h)) || groups[0]).h;
+  if (!st.m && nums.length) st.m = nums[0].h;
+  const agg = (rs, h) => { const c = d.cols.find(x => x.h === h); const vs = rs.map(r => NX.num(r[h])).filter(v => v !== null); if (!vs.length) return null; const s = vs.reduce((a, b) => a + b, 0); return c && c.kind === 'pct' ? s / vs.length : s; };
+  const sortCol = st.sort ? d.cols.find(c => c.h === st.sort) : null;
+  let view = rows.slice();
+  if (sortCol) view.sort((a, b) => { const x = sortCol.kind === 'num' || sortCol.kind === 'pct' ? NX.num(a[sortCol.h]) : String(a[sortCol.h] ?? ''); const y = sortCol.kind === 'num' || sortCol.kind === 'pct' ? NX.num(b[sortCol.h]) : String(b[sortCol.h] ?? ''); if (x === y) return 0; if (x === null || x === '') return 1; if (y === null || y === '') return -1; return (x > y ? 1 : -1) * (st.dir || -1); });
+  return head(esc(d.name), { eyebrow: 'My reports · ' + esc(d.file), text: `${fmt(rows.length)} of ${fmt(d.rows.length)} rows · uploaded ${new Date(d.at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` },
+    `<select id="cr-pick" aria-label="Report" style="width:auto;max-width:260px">${sets.map(s => `<option value="${esc(s.id)}" ${s.id === d.id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')}</select><button class="btn danger" id="cr-del">${I.trash}Delete</button>`) +
+    (d.ownerCol ? `<div class="chips"><button class="chip ${st.mine !== false ? 'on' : ''}" id="cr-mine">${st.mine !== false ? '✓ ' : ''}Only my rows (${esc(d.ownerCol)})</button></div>` : '') +
+    `<div class="tiles"><div class="tile"><span class="eyebrow">Rows</span><span class="v">${fmt(rows.length)}</span><span class="s">${d.cols.length} columns</span></div>
+      ${nums.slice(0, 5).map(c => `<div class="tile"><span class="eyebrow">${esc(c.h)}</span><span class="v">${(() => { const v = agg(rows, c.h); return v === null ? '–' : c.kind === 'pct' ? fmt(v, 1) : fmt(v, Math.abs(v) < 100 && !Number.isInteger(v) ? 2 : 0); })()}</span><span class="s">${c.kind === 'pct' ? 'average' : 'total'}</span></div>`).join('')}</div>
+    ${groups.length && nums.length ? `<section class="card"><div class="card-h"><h2>Breakdown</h2><div class="row" style="flex-wrap:nowrap;gap:8px"><select id="cr-by" aria-label="Group by" style="width:auto">${groups.map(c => `<option ${c.h === st.by ? 'selected' : ''}>${esc(c.h)}</option>`).join('')}</select><select id="cr-m" aria-label="Measure" style="width:auto">${nums.map(c => `<option ${c.h === st.m ? 'selected' : ''}>${esc(c.h)}</option>`).join('')}</select></div></div><div class="chart" id="ch-cr"></div></section>` : ''}
+    <section class="card"><div class="card-h"><h2>Data</h2><input type="search" id="cr-q" placeholder="Search any value" value="${esc(st.q || '')}" style="width:220px"></div>
+      <div class="tbl-wrap" style="max-height:560px"><table><thead><tr>${d.cols.map(c => `<th class="${c.kind === 'num' || c.kind === 'pct' ? 'n' : ''}" data-crs="${esc(c.h)}">${esc(c.h)}${st.sort === c.h ? (st.dir > 0 ? ' ↑' : ' ↓') : ''}</th>`).join('')}</tr></thead><tbody>
+      ${view.slice(0, 300).map(r => `<tr>${d.cols.map(c => `<td class="${c.kind === 'num' || c.kind === 'pct' ? 'n' : ''}">${cfmt(r[c.h], c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+      ${view.length > 300 ? `<p class="muted" style="margin:0;font-size:var(--t-cap)">Showing 300 of ${fmt(view.length)} rows. Search or sort to find others; Formula Lab works on all rows.</p>` : ''}
+      <p class="muted" style="margin:0;font-size:var(--t-cap)">Columns that look like codes or IDs (${d.cols.filter(c => c.kind === 'id').map(c => esc(c.h)).join(', ') || 'none'}) are kept as text and never added up.</p></section>`;
+}
+afterRender.reports = () => {
+  const sets = customSets(); if (!sets.length) return;
+  const d = sets.find(x => x.id === VIEWARG) || sets[0], st = crState[d.id];
+  const on = (id, ev, f) => { const e = $(id); if (e) e.addEventListener(ev, f); };
+  on('#cr-pick', 'change', e => go('reports', e.target.value));
+  on('#cr-mine', 'click', () => { st.mine = st.mine === false; render(); });
+  on('#cr-by', 'change', e => { st.by = e.target.value; render(); });
+  on('#cr-m', 'change', e => { st.m = e.target.value; render(); });
+  on('#cr-q', 'change', e => { st.q = e.target.value; render(); });
+  document.querySelectorAll('[data-crs]').forEach(th => th.addEventListener('click', () => { st.dir = st.sort === th.dataset.crs ? -(st.dir || -1) : -1; st.sort = th.dataset.crs; render(); }));
+  const del = $('#cr-del'); if (del) del.addEventListener('click', () => { if (!del.dataset.armed) { del.dataset.armed = 1; del.innerHTML = 'Tap again to delete'; setTimeout(() => { if (del.isConnected) { delete del.dataset.armed; del.innerHTML = I.trash + 'Delete'; } }, 3000); return; } S.datasets = S.datasets.filter(x => x.id !== d.id); rebuild(); save(); toast('Deleted ' + d.name); go('reports'); });
+  const el = $('#ch-cr'); if (!el || !window.echarts || !st.by || !st.m) return;
+  const c = d.cols.find(x => x.h === st.m), g = new Map();
+  crRows(d).forEach(r => { const k = String(r[st.by] ?? '(blank)'); const v = NX.num(r[st.m]); if (v === null) return; const o = g.get(k) || { s: 0, n: 0 }; o.s += v; o.n++; g.set(k, o); });
+  let data = [...g.entries()].map(([k, o]) => ({ n: k, v: c.kind === 'pct' ? o.s / o.n : o.s })).sort((a, b) => b.v - a.v).slice(0, 12).reverse();
+  barChart('ch-cr', data.map(x => ({ n: x.n, v: x.v })));
+};
+
+// ---------- UPLOAD PAGE: your files, delete, start fresh ----------
+function uploadsCard() {
+  const files = new Map();
+  S.datasets.filter(d => !d.demo).forEach(d => { const k = d.file || 'Unknown file'; const o = files.get(k) || { file: k, parts: [], rows: 0, at: 0 }; o.parts.push(d.t === 'custom' ? d.name : (DS_LABEL[d.t] || d.t) + (d.window && d.window !== 'MTD' ? ' · ' + d.window : '')); o.rows += d.rows.length; o.at = Math.max(o.at, d.at || 0); o.custom = o.custom || (d.t === 'custom' ? d.id : null); files.set(k, o); });
+  const list = [...files.values()].sort((a, b) => b.at - a.at);
+  return `<section class="card"><div class="card-h"><h2>Your uploaded files</h2><span class="muted" style="font-size:var(--t-cap)">${list.length} files</span></div>
+    ${S.demo ? `<div class="confirm" style="background:var(--violet-soft)"><b>Demo data is showing.</b><span class="muted">Remove it to start with an empty Nexora, or just upload a file and it goes away by itself.</span><button class="btn" id="up-fresh">Remove demo data</button></div>` : ''}
+    ${list.length ? `<div class="tbl-wrap"><table><thead><tr><th>File</th><th>Recognised as</th><th>Uploaded</th><th class="n">Rows</th><th></th></tr></thead><tbody>${list.map(f => `<tr><td style="white-space:normal;min-width:160px">${f.custom ? `<a href="#" data-go="reports" data-arg="${esc(f.custom)}">${esc(f.file)}</a>` : esc(f.file)}</td><td style="white-space:normal;min-width:180px">${esc(f.parts.join(', '))}</td><td class="mono">${new Date(f.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td><td class="n">${fmt(f.rows)}</td><td><button class="btn danger" data-up-del="${esc(f.file)}" style="padding:6px 10px">${I.trash}Delete</button></td></tr>`).join('')}</tbody></table></div>`
+      : '<div class="empty">Nothing uploaded yet.</div>'}
+    <p class="muted" style="margin:0;font-size:var(--t-cap)">Deleting a file removes its numbers from every screen. Your work log, KRA scorecard and notes stay.</p></section>`;
+}
+function bindUploads() {
+  const f = $('#up-fresh'); if (f) f.addEventListener('click', () => { startFresh(); toast('Demo data removed'); render(); });
+  document.querySelectorAll('[data-up-del]').forEach(b => b.addEventListener('click', () => {
+    if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Tap again'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.innerHTML = I.trash + 'Delete'; } }, 3000); return; }
+    const file = b.dataset.upDel; S.datasets = S.datasets.filter(d => (d.file || 'Unknown file') !== file); rebuild(); save(); toast('Deleted ' + file); render();
+  }));
+}
+function startFresh() {
+  S.datasets = S.datasets.filter(d => !d.demo); S.log = S.log.filter(l => !l.demo);
+  if (S.kra) for (const k of Object.keys(S.kra)) if (S.kra[k].demo) delete S.kra[k];
+  S.snap = {}; S.weekly = {}; S.demo = false; rebuild(); save();
+}
+
 // ---------- UPLOAD ----------
 let lastResults = [];
 function vUpload() {
@@ -2038,12 +2220,14 @@ function vUpload() {
     `<label class="drop" id="drop" for="file"><span>${I.up}</span><h2>Drop CSV or Excel files here</h2><span class="muted">or tap to choose · several at once is fine · up to ~40k rows each</span>
       <span class="steps"><span>Detect report</span><span>Map columns</span><span>Clean</span><span>Pick your rows</span><span>Calculate</span><span>Refresh</span></span></label>
     <div id="results" class="acts">${lastResults.map(resRow).join('')}</div>
+    ${uploadsCard()}
     <section class="card"><h2>Reports Nexora recognises</h2><div class="tbl-wrap"><table><thead><tr><th>Report</th><th>Area</th><th>Last upload</th><th class="n">Rows</th></tr></thead><tbody>
       ${NX.TEMPLATES.filter(t => t.id !== 'ads_summary' && t.id !== 'kam_one').map(t => { const d = (byT[t.id] || []).sort((a, b) => b.at - a.at)[0]; return `<tr><td>${t.name}</td><td>${t.group}</td><td class="mono">${d ? new Date(d.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '<span class="muted">not yet</span>'}</td><td class="n">${d ? fmt((byT[t.id] || []).reduce((s, x) => s + x.rows.length, 0)) : '–'}</td></tr>`; }).join('')}
     </tbody></table></div><p class="muted" style="margin:0;font-size:.8rem">Re-uploading the same report replaces the older copy. Files are read on this device; nothing is sent anywhere.</p></section>`;
 }
-function resRow(r) { return `<div class="res"><span class="pill ${r.ok ? 'good' : r.skip ? '' : 'bad'}">${r.ok ? 'Loaded' : r.skip ? 'Skipped' : 'Unknown'}</span><span style="min-width:0"><b>${esc(r.label)}</b><div class="f">${esc(r.file)}${r.sheet ? ' · ' + esc(r.sheet) : ''}</div></span><span class="mono muted">${r.ok ? fmt(r.rows) + ' rows' : ''}</span></div>`; }
+function resRow(r) { return `<div class="res"${r.go ? ` data-go="reports" data-arg="${esc(r.go)}" style="cursor:pointer"` : ''}><span class="pill ${r.ok ? 'good' : r.skip ? '' : 'bad'}">${r.ok ? 'Loaded' : r.skip ? 'Skipped' : 'Error'}</span><span style="min-width:0"><b>${esc(r.label)}</b><div class="f">${esc(r.file)}${r.sheet ? ' · ' + esc(r.sheet) : ''}</div></span><span class="mono muted">${r.ok ? fmt(r.rows) + ' rows' : ''}</span></div>`; }
 afterRender.upload = () => {
+  bindUploads();
   const dz = $('#drop');
   ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('over'); }));
   ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('over'); }));
@@ -2063,7 +2247,7 @@ async function handleFiles(files) {
         const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null });
         if (!aoa.length) continue;
         const d = NX.detect(aoa, sn);
-        if (!d.template) { out.push({ ok: false, label: 'Not recognised yet', file: f.name, sheet: wb.SheetNames.length > 1 ? sn : '' }); continue; }
+        if (!d.template) { const c = importCustom(aoa, f.name, sn, wb.SheetNames.length > 1); if (c) { fresh.push(c); out.push({ ok: true, label: 'Added to My reports: ' + c.name, file: f.name, sheet: wb.SheetNames.length > 1 ? sn : '', rows: c.rows.length, go: c.id }); } continue; }
         if (d.template.id === 'ads_summary' || /full|projection/i.test(d.window)) { out.push({ ok: false, skip: true, label: d.template.name + (d.window ? ' · ' + d.window : '') + ' — not needed, totals are calculated from raw rows', file: f.name, sheet: sn }); continue; }
         if (d.template.id === 'kra_summary') { const rs = NX.normalise('kra_summary', d.rows, S.settings.owner, d); kraImports.push([rs, f.name]); continue; }
         const rows = NX.normalise(d.template.id, d.rows, S.settings.owner, d);
@@ -2078,7 +2262,7 @@ async function handleFiles(files) {
   }
   if (fresh.length || kraImports.length) {
     if (S.demo) { S.datasets = []; S.log = S.log.filter(l => !l.demo); S.demo = false; }
-    for (const d of fresh) { const mo = x => (x.t === 'kam_bo' || x.t === 'route_market') && x.rows[0] ? x.rows[0].month : ''; S.datasets = S.datasets.filter(x => !(x.t === d.t && (x.window || 'MTD') === (d.window || 'MTD') && mo(x) === mo(d))); S.datasets.push(d); }
+    for (const d of fresh) { if (d.t === 'custom') { S.datasets = S.datasets.filter(x => x.id !== d.id); S.datasets.push(d); continue; } const mo = x => (x.t === 'kam_bo' || x.t === 'route_market') && x.rows[0] ? x.rows[0].month : ''; S.datasets = S.datasets.filter(x => !(x.t === d.t && (x.window || 'MTD') === (d.window || 'MTD') && mo(x) === mo(d))); S.datasets.push(d); }
     rebuild(); save();
   }
   lastResults = out; render();
@@ -2090,7 +2274,7 @@ let confirmReset = false;
 function vSettings() {
   const T = S.settings.T;
   const th = [['ybMin', 'YB assignment target %'], ['lqsMin', 'LQS minimum %'], ['busCancelMax', 'Bus cancel limit %'], ['ratingMin', 'Rating minimum'], ['redDealMin', 'Red Deal share minimum %'], ['roasMin', 'ROAS minimum ×'], ['liqLow', 'Low liquidation below %'], ['notAssignedMax', 'Service not-assigned limit %'], ['apiCancelMax', 'API cancels alert above']];
-  return head('Settings', { eyebrow: 'Workspace · RedBus KAM' }) + cloudCard() +
+  return head('Settings', { eyebrow: 'Workspace · RedBus KAM' }) + appearanceCard() + cloudCard() +
     `<div class="grid2"><section class="card"><h2>You</h2>
       <div class="field"><label for="owner">Display name</label><input type="text" id="owner" value="${esc(S.settings.owner)}"></div>
       <div class="field"><label for="names">Your names in reports, comma separated</label><input type="text" id="names" value="${esc(S.settings.names)}"></div>
@@ -2100,12 +2284,13 @@ function vSettings() {
     <section class="card"><h2>Alert thresholds</h2><div class="row"><div class="field" style="flex:1 1 150px"><label for="kcap">KRA achievement cap %</label><input type="number" id="kcap" value="${S.settings.kraCap || 200}"></div>${th.map(([k, l]) => `<div class="field" style="flex:1 1 150px"><label for="t-${k}">${l}</label><input type="number" step="any" id="t-${k}" data-t="${k}" value="${T[k]}"></div>`).join('')}</div>
       <div class="actions"><button class="btn" id="tdef">Reset to defaults</button></div></section></div>
     <section class="card"><h2>Loaded data</h2>
-      ${S.datasets.length ? `<div class="tbl-wrap"><table><thead><tr><th>Report</th><th>File</th><th>Loaded</th><th class="n">Rows</th><th></th></tr></thead><tbody>${[...S.datasets].sort((a, b) => b.at - a.at).map(d => `<tr><td>${esc(DS_LABEL[d.t] || d.t)}${d.window && d.window !== 'MTD' ? ' · ' + esc(d.window) : ''}</td><td>${esc(d.file)}</td><td class="mono">${new Date(d.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td><td class="n">${fmt(d.rows.length)}</td><td><button class="icon-btn" data-rmds="${esc(d.id)}" aria-label="Remove">${I.trash}</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No data loaded.</div>'}
+      ${S.datasets.length ? `<div class="tbl-wrap"><table><thead><tr><th>Report</th><th>File</th><th>Loaded</th><th class="n">Rows</th><th></th></tr></thead><tbody>${[...S.datasets].sort((a, b) => b.at - a.at).map(d => `<tr><td>${esc(d.t === 'custom' ? d.name : (DS_LABEL[d.t] || d.t))}${d.window && d.window !== 'MTD' ? ' · ' + esc(d.window) : ''}</td><td>${esc(d.file)}</td><td class="mono">${new Date(d.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</td><td class="n">${fmt(d.rows.length)}</td><td><button class="icon-btn" data-rmds="${esc(d.id)}" aria-label="Remove">${I.trash}</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No data loaded.</div>'}
       ${confirmReset ? `<div class="confirm"><b>Clear all uploaded data and work log?</b><span class="muted">This cannot be undone.</span><button class="btn danger" id="resetyes">Yes, clear everything</button><button class="btn" id="resetno">Keep</button></div>` : `<div class="actions"><button class="btn danger" id="reset">${I.trash}Clear all data</button><button class="btn" id="demo">Load demo data</button></div>`}
       <p class="muted" style="margin:0;font-size:.8rem">This preview keeps everything in this browser on this device. The cloud version (Supabase) will sync phone and laptop.</p>
     </section>`;
 }
 afterRender.settings = () => {
+  bindAppearance();
   bindCloud();
   $('#owner').addEventListener('change', e => { S.settings.owner = e.target.value.trim() || 'Suresh'; save(); toast('Saved'); });
   $('#names').addEventListener('change', e => { S.settings.names = e.target.value; rebuild(); save(); render(); toast('Your rows re-selected'); });
