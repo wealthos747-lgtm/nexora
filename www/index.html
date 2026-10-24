@@ -4,8 +4,7 @@
 </head><body>
 <title>Nexora</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="fonts.css">
 <style>
 /* Layout: KAM command console — left rail on laptop, bottom dock on phone; dense tables, numbers in mono. Midnight Luxe, dark first. */
 :root {
@@ -16,8 +15,8 @@
   --edge: rgba(60,203,255,.16); --edge-hi: rgba(60,203,255,.45); --panel-grad: linear-gradient(160deg, rgba(60,203,255,.06), rgba(11,20,39,0) 45%);
   --shadow: 0 0 0 1px rgba(60,203,255,.03) inset, 0 10px 30px rgba(0,0,0,.45);
   --f-display: "Sora", "Segoe UI", system-ui, sans-serif;
-  --f-body: "Manrope", "Segoe UI", system-ui, sans-serif;
-  --f-num: "Manrope", "Segoe UI", system-ui, sans-serif;
+  --f-body: "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
+  --f-num: "Outfit", "Inter", "Segoe UI", Roboto, system-ui, sans-serif;
   --f-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   --glow1: rgba(60,203,255,.10); --glow2: rgba(143,124,255,.09); --hero: linear-gradient(135deg, #0F1D3E 0%, #0B1427 55%, #1A1640 100%); --tile-hi: rgba(255,255,255,.035);
   color-scheme: dark;
@@ -39,17 +38,18 @@
 
 * { box-sizing: border-box; }
 html, body { height: 100%; }
-body { background: var(--bg); color: var(--fg); font: 14px/1.55 var(--f-body); font-feature-settings: "tnum" 1; background-image: radial-gradient(900px 420px at 85% -10%, var(--glow2), transparent 60%), radial-gradient(800px 380px at 10% -15%, var(--glow1), transparent 60%); background-attachment: fixed; }
+body { background: var(--bg); color: var(--fg); font: 15px/1.55 var(--f-body); font-feature-settings: "tnum" 1, "cv11" 1; -webkit-font-smoothing: antialiased; background-image: radial-gradient(900px 420px at 85% -10%, var(--glow2), transparent 60%), radial-gradient(800px 380px at 10% -15%, var(--glow1), transparent 60%); background-attachment: fixed; }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 30; background: var(--bg); }
 button, input, select, textarea { font: inherit; color: inherit; }
 a { color: var(--accent); }
-.num, td.n { font-family: var(--f-num); font-variant-numeric: tabular-nums; font-weight: 600; letter-spacing: -.005em; }
-.mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; font-size: .92em; }
+.num, td.n { font-family: var(--f-num); font-variant-numeric: tabular-nums; font-weight: 600; font-size: .95rem; letter-spacing: 0; }
+.mono { font-family: var(--f-num); font-variant-numeric: tabular-nums; font-weight: 500; }
+code, .code-f, #fxin { font-family: var(--f-mono); }
 h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; letter-spacing: -.01em; }
 h1 { font-size: 1.7rem; font-weight: 700; letter-spacing: -.025em; }
 h2 { font-size: 1.12rem; font-weight: 600; }
 h3 { font-size: .95rem; font-weight: 600; }
-.eyebrow { font-size: .7rem; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.eyebrow { font-size: .74rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
 .muted { color: var(--muted); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -81,7 +81,7 @@ main { min-width: 0; padding-block: 22px 40px; padding-left: max(16px, env(safe-
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: .8rem; font-weight: 600; color: var(--muted); }
 .chip:hover { color: var(--fg); border-color: var(--accent); }
-.delta { font-weight: 700; font-family: var(--f-num); }
+.delta { font-weight: 600; font-family: var(--f-num); }
 .delta.up { color: var(--good); } .delta.down { color: var(--bad); }
 .sec-h { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
 .sec-h .n { font: 800 .78rem var(--f-num); color: var(--accent); background: var(--accent-soft); border-radius: 7px; padding: 2px 8px; }
@@ -101,10 +101,10 @@ main { min-width: 0; padding-block: 22px 40px; padding-left: max(16px, env(safe-
 .tile .eyebrow { display: flex; align-items: center; gap: 7px; }
 .tile .ic { width: 22px; height: 22px; border-radius: 7px; display: inline-grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
 .tile .ic svg { width: 13px; height: 13px; }
-.tile .v { font: 800 1.7rem/1.15 var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: -.035em; }
-.tile .v small, .big small { font-size: .52em; color: var(--muted); font-weight: 600; margin-left: 4px; letter-spacing: 0; }
-.cur { font-size: .62em; font-weight: 600; color: var(--muted); margin-right: 2px; vertical-align: .28em; }
-.tile .s { font-size: .78rem; color: var(--muted); }
+.tile .v { font: 700 2rem/1.1 var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+.tile .v small, .big small, .cc-kpi .v small { font-size: .5em; color: var(--muted); font-weight: 600; margin-left: 4px; letter-spacing: 0; }
+.cur { font-size: .6em; font-weight: 600; color: var(--muted); margin-right: 3px; vertical-align: .32em; }
+.tile .s { font-size: .82rem; color: var(--muted); }
 .tile.good .v { color: var(--good); } .tile.warn .v { color: var(--warn); } .tile.bad .v { color: var(--bad); }
 
 .grid2 { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; }
@@ -113,7 +113,7 @@ main { min-width: 0; padding-block: 22px 40px; padding-left: max(16px, env(safe-
 .hero { background: var(--hero); border: 1px solid var(--line); border-radius: 22px; padding: 22px 24px; display: flex; flex-wrap: wrap; gap: 18px 32px; justify-content: space-between; align-items: flex-end; box-shadow: var(--shadow); position: relative; overflow: hidden; }
 .hero::after { content: ""; position: absolute; right: -80px; top: -120px; width: 320px; height: 320px; border-radius: 50%; background: radial-gradient(circle, var(--glow2), transparent 70%); pointer-events: none; }
 .hero .figs { display: flex; gap: 28px; flex-wrap: wrap; position: relative; z-index: 1; }
-.big { font: 800 2.3rem/1.05 var(--f-num); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.big { font: 700 2.5rem/1.05 var(--f-num); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .hero .sub { color: var(--muted); }
 .card-h { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
 .chart { width: 100%; height: 290px; }
@@ -123,17 +123,17 @@ main { min-width: 0; padding-block: 22px 40px; padding-left: max(16px, env(safe-
 .alert .bar { align-self: stretch; border-radius: 0 3px 3px 0; }
 .alert.high .bar { background: var(--bad); } .alert.mid .bar { background: var(--warn); } .alert.opp .bar { background: var(--good); }
 .alert b { font-weight: 600; }
-.alert .t { font-size: .84rem; }
+.alert .t { font-size: .9rem; }
 
-.pill { display: inline-flex; align-items: center; gap: 5px; padding: 2px 10px; border-radius: 999px; font-size: .72rem; font-weight: 700; letter-spacing: .01em; white-space: nowrap; background: var(--panel2); color: var(--muted); border: 1px solid transparent; }
+.pill { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: .76rem; font-weight: 700; letter-spacing: .01em; white-space: nowrap; background: var(--panel2); color: var(--muted); border: 1px solid transparent; }
 .pill.good { background: var(--good-soft); color: var(--good); } .pill.warn { background: var(--warn-soft); color: var(--warn); } .pill.bad { background: var(--bad-soft); color: var(--bad); } .pill.acc { background: var(--accent-soft); color: var(--accent); } .pill.vio { background: var(--violet-soft); color: var(--violet); }
 .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
 
 .tbl-wrap { overflow-x: auto; border-radius: 10px; border: 1px solid var(--line); }
-table { border-collapse: collapse; width: 100%; font-size: .84rem; }
-th { text-align: left; font-weight: 700; color: var(--muted); font-size: .68rem; letter-spacing: .07em; text-transform: uppercase; padding: 9px 10px; background: var(--panel2); position: sticky; top: 0; white-space: nowrap; cursor: pointer; user-select: none; }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th { text-align: left; font-weight: 600; color: var(--muted); font-size: .72rem; letter-spacing: .06em; text-transform: uppercase; padding: 9px 10px; background: var(--panel2); position: sticky; top: 0; white-space: nowrap; cursor: pointer; user-select: none; }
 th.n, td.n { text-align: right; }
-td { padding: 8px 10px; border-top: 1px solid var(--line); white-space: nowrap; }
+td { padding: 10px 12px; border-top: 1px solid var(--line); white-space: nowrap; }
 tr.click { cursor: pointer; } tr.click:hover td { background: var(--accent-soft); }
 td.good { color: var(--good); } td.warn { color: var(--warn); } td.bad { color: var(--bad); }
 td .nm { font-weight: 600; } td .code { color: var(--muted); font-size: .74rem; margin-left: 6px; }
@@ -167,7 +167,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .icon-btn svg { width: 16px; height: 16px; }
 
 .split { display: flex; flex-direction: column; gap: 8px; }
-.split-row { display: grid; grid-template-columns: 110px minmax(0, 1fr) 70px; gap: 10px; align-items: center; font-size: .84rem; }
+.split-row { display: grid; grid-template-columns: 120px minmax(0, 1fr) 80px; gap: 10px; align-items: center; font-size: .9rem; }
 .track { height: 10px; border-radius: 999px; background: var(--panel2); overflow: hidden; }
 .track i { display: block; height: 100%; border-radius: 999px; }
 .seg { display: flex; gap: 4px; background: var(--panel2); padding: 3px; border-radius: 10px; }
@@ -176,8 +176,8 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 
 .kv { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
 .kv div { padding: 9px 11px; border-radius: 9px; background: var(--panel2); display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.kv span { font-size: .72rem; color: var(--muted); }
-.kv b { font: 700 1.02rem var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.kv span { font-size: .78rem; color: var(--muted); }
+.kv b { font: 700 1.2rem var(--f-num); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 .kv b.good { color: var(--good); } .kv b.warn { color: var(--warn); } .kv b.bad { color: var(--bad); }
 
 .empty { padding: 26px 14px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 12px; }
@@ -185,7 +185,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .cols { columns: 2 280px; column-gap: 16px; font-size: .8rem; }
 .cols div { break-inside: avoid; padding: 2px 0; }
 .cols b { font-family: var(--f-mono); color: var(--accent); margin-right: 6px; }
-.result { font: 800 2rem var(--f-num); color: var(--accent); letter-spacing: -.03em; }
+.result { font: 700 2.2rem var(--f-num); color: var(--accent); letter-spacing: -.02em; }
 .monthnav { display: inline-flex; align-items: center; gap: 4px; padding: 3px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
 .monthnav b { font: 600 .9rem var(--f-display); min-width: 128px; text-align: center; }
 .kra-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow-x: auto; }
@@ -193,14 +193,14 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .kra-h { border-top: 0; background: var(--panel2); font-size: .7rem; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; padding-block: 9px; border-radius: 14px 14px 0 0; }
 .kra .lbl { display: none; font-size: .7rem; color: var(--muted); font-weight: 600; letter-spacing: .03em; text-transform: uppercase; }
 .kra > div { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.kra input, .kra select, .kra textarea { padding: 6px 8px; font-size: .84rem; }
+.kra input, .kra select, .kra textarea { padding: 7px 9px; font-size: .9rem; }
 .kra textarea { min-height: 0; resize: vertical; }
 .kra .k-no { padding-top: 7px; color: var(--muted); }
 .kra input[data-f="cat"] { font-weight: 600; }
 .kra input:disabled, .kra select:disabled, .kra textarea:disabled { opacity: 1; background: transparent; border-color: transparent; padding-left: 0; color: var(--fg); -webkit-text-fill-color: var(--fg); }
 .k-auto { font-size: .78rem; min-height: 1.2em; }
-.k-ach { font: 800 1.2rem var(--f-num); letter-spacing: -.02em; } .k-ach.good { color: var(--good); } .k-ach.warn { color: var(--warn); } .k-ach.bad { color: var(--bad); }
-.k-pay b { font-size: 1.05rem; padding-top: 2px; }
+.k-ach { font: 700 1.35rem var(--f-num); letter-spacing: -.01em; } .k-ach.good { color: var(--good); } .k-ach.warn { color: var(--warn); } .k-ach.bad { color: var(--bad); }
+.k-pay b { font: 700 1.15rem var(--f-num); padding-top: 2px; }
 .k-sm { font-size: .72rem; }
 .capbar { position: relative; height: 6px; border-radius: 999px; background: var(--panel2); }
 .capbar i { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 999px; background: linear-gradient(90deg, var(--violet), var(--accent)); max-width: 100%; }
@@ -216,7 +216,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .avatar { width: 30px; height: 30px; border-radius: 10px; display: grid; place-items: center; font: 700 .72rem var(--f-display); color: #06101F; background: linear-gradient(135deg, var(--accent), var(--violet)); }
 .dot.live { width: 7px; height: 7px; background: var(--good); box-shadow: 0 0 0 0 var(--good); animation: pulse 1.8s infinite; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(61,220,151,.6); } 70% { box-shadow: 0 0 0 7px rgba(61,220,151,0); } 100% { box-shadow: 0 0 0 0 rgba(61,220,151,0); } }
-.ttl { font: 700 .7rem var(--f-display); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
+.ttl { font: 700 .78rem var(--f-display); letter-spacing: .12em; text-transform: uppercase; color: var(--fg); }
 .cc-head { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; align-items: flex-end; }
 .cc-title { font-size: 1.55rem; letter-spacing: .02em; text-transform: uppercase; background: linear-gradient(90deg, var(--fg), var(--accent)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .cc-head .sub { color: var(--muted); }
@@ -224,9 +224,9 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .cc-kpi, .cc-ai, .cc-neural, .cc-rev { background: var(--panel-grad), var(--panel); border: 1px solid var(--edge); border-radius: 16px; box-shadow: var(--shadow); min-width: 0; position: relative; }
 .cc-kpi { display: flex; flex-direction: column; gap: 4px; padding: 14px 15px 0; text-align: left; cursor: pointer; overflow: hidden; color: var(--fg); transition: border-color .2s, transform .2s; }
 .cc-kpi:hover, .node:hover { border-color: var(--edge-hi); }
-.cc-kpi .v { font: 800 1.75rem/1.1 var(--f-num); letter-spacing: -.035em; }
-.cc-kpi .dl { font-size: .76rem; min-height: 1.2em; }
-.cc-kpi .k-sub { font-size: .72rem; }
+.cc-kpi .v { font: 700 2.15rem/1.1 var(--f-num); letter-spacing: -.02em; }
+.cc-kpi .dl { font-size: .84rem; min-height: 1.2em; }
+.cc-kpi .k-sub { font-size: .8rem; }
 .spark { width: calc(100% + 30px); height: 58px; flex: none; margin: auto -15px 0; padding-top: 8px; display: block; }
 .sp-empty { display: block; height: 3px; margin: auto -15px 14px; background: linear-gradient(90deg, transparent, var(--c), transparent); opacity: .5; }
 .cc-side { grid-column: 5; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
@@ -238,11 +238,11 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .ring svg { width: 84px; height: 84px; transform: rotate(-90deg); }
 .ring circle { fill: none; stroke-width: 8; } .ring .trk { stroke: var(--panel2); } .ring .val { stroke: var(--accent); stroke-linecap: round; filter: drop-shadow(0 0 6px var(--accent)); }
 .ring > div { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
-.ring b { font: 800 1.25rem var(--f-num); } .ring span { font-size: .66rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+.ring b { font: 700 1.4rem var(--f-num); } .ring span { font-size: .66rem; color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
 .ai-list { margin: 0; display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 0; }
-.ai-list div { display: flex; justify-content: space-between; gap: 8px; font-size: .8rem; } .ai-list dt { color: var(--muted); } .ai-list dd { margin: 0; font-weight: 700; }
+.ai-list div { display: flex; justify-content: space-between; gap: 8px; font-size: .88rem; } .ai-list dt { color: var(--muted); } .ai-list dd { margin: 0; font-weight: 700; }
 .ai-list .good { color: var(--good); } .ai-list .warn { color: var(--warn); } .ai-list .bad { color: var(--bad); }
-.ai-note { margin: 0; font-size: .78rem; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--edge); }
+.ai-note { margin: 0; font-size: .84rem; color: var(--muted); padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); border: 1px solid var(--edge); }
 .ai-note b { color: var(--accent); }
 .cc-ai .spark { width: 100%; margin: 0; min-height: 30px; flex: 0 0 30px; }
 .cc-neural { grid-column: 1 / span 4; grid-row: 2; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; padding: 14px; overflow: hidden; background: radial-gradient(420px 220px at 50% 50%, var(--accent-soft), transparent 70%), var(--panel); }
@@ -252,23 +252,23 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
 .node .ic { width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); border: 1px solid var(--edge); }
 .node .ic svg { width: 16px; height: 16px; }
 .node.out .ic { background: var(--warn-soft); color: var(--amber); border-color: color-mix(in srgb, var(--amber) 30%, transparent); }
-.node .nm { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; font: 700 .66rem var(--f-display); letter-spacing: .08em; text-transform: uppercase; min-width: 0; width: 100%; }
-.node .nm b { font: 800 1rem var(--f-num); letter-spacing: -.01em; text-transform: none; grid-row: 2; grid-column: 1; }
-.node .nm small { font: 500 .7rem var(--f-body); color: var(--muted); letter-spacing: 0; text-transform: none; grid-row: 1 / span 2; grid-column: 2; align-self: center; text-align: right; max-width: 110px; }
+.node .nm { display: grid; grid-template-columns: 1fr auto; column-gap: 8px; font: 700 .72rem var(--f-display); letter-spacing: .08em; text-transform: uppercase; min-width: 0; width: 100%; }
+.node .nm b { font: 700 1.25rem var(--f-num); letter-spacing: -.01em; text-transform: none; grid-row: 2; grid-column: 1; }
+.node .nm small { font: 500 .76rem var(--f-body); color: var(--muted); letter-spacing: 0; text-transform: none; grid-row: 1 / span 2; grid-column: 2; align-self: center; text-align: right; max-width: 110px; }
 .node.out.bad .nm b { color: var(--bad); } .node.out.warn .nm b { color: var(--amber); } .node.out.good .nm b { color: var(--good); }
 .core { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-width: 0; }
 .chip { width: 132px; height: 132px; border-radius: 28px; display: grid; place-items: center; margin: 8px 0; background: linear-gradient(145deg, #0E2448, #0A1226); border: 1px solid var(--edge-hi); box-shadow: 0 0 0 6px rgba(60,203,255,.05), 0 0 40px rgba(60,203,255,.35), inset 0 0 30px rgba(60,203,255,.18); position: relative; }
 .chip::before { content: ""; position: absolute; inset: -14px; border-radius: 36px; border: 1px dashed rgba(60,203,255,.25); animation: spin 26s linear infinite; }
 .chip-in { width: 84px; height: 84px; color: #E9F1FF; filter: drop-shadow(0 0 10px rgba(60,203,255,.6)); }
 @keyframes spin { to { transform: rotate(360deg); } }
-.core-stats { display: flex; gap: 14px; } .core-stats span { display: flex; flex-direction: column; align-items: center; font-size: .66rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; } .core-stats b { font: 800 1rem var(--f-num); color: var(--fg); letter-spacing: 0; }
+.core-stats { display: flex; gap: 14px; } .core-stats span { display: flex; flex-direction: column; align-items: center; font-size: .66rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; } .core-stats b { font: 700 1.25rem var(--f-num); color: var(--fg); letter-spacing: 0; }
 .cc-rev { padding: 14px 15px; display: flex; flex-direction: column; gap: 10px; }
 .pl { display: flex; flex-direction: column; } .pl div { display: grid; grid-template-columns: 1fr auto; padding: 8px 0; border-bottom: 1px solid var(--line); }
-.pl span { color: var(--muted); font-size: .82rem; } .pl b { font: 800 .98rem var(--f-num); text-align: right; } .pl small { grid-column: 2; text-align: right; color: var(--good); font-size: .7rem; font-weight: 700; }
-.pl .tot { border-bottom: 0; } .pl .tot span { color: var(--fg); font-weight: 700; } .pl .tot b { font-size: 1.15rem; color: var(--amber); }
+.pl span { color: var(--muted); font-size: .9rem; } .pl b { font: 700 1.15rem var(--f-num); text-align: right; } .pl small { grid-column: 2; text-align: right; color: var(--good); font-size: .76rem; font-weight: 600; }
+.pl .tot { border-bottom: 0; } .pl .tot span { color: var(--fg); font-weight: 700; } .pl .tot b { font-size: 1.4rem; color: var(--amber); }
 .cc-row3 { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1.2fr); gap: 14px; }
 @media (max-width: 1240px) { .cc-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .cc-neural { grid-column: 1 / -1; grid-row: auto; } .cc-side { grid-column: 1 / -1; grid-row: auto; flex-direction: row; flex-wrap: wrap; } .cc-side > section { flex: 1 1 300px; } .cc-row3 { grid-template-columns: 1fr 1fr; } .cc-row3 > :first-child { grid-column: 1 / -1; } }
-@media (max-width: 760px) { .cc-neural { grid-template-columns: 1fr; } .cc-neural canvas { display: none; } .chip { width: 96px; height: 96px; border-radius: 22px; } .chip-in { width: 60px; height: 60px; }   .cc-side { flex-direction: column; } .cc-row3 { grid-template-columns: 1fr; } .clock { display: none; } .cc-kpi .v { font-size: 1.35rem; } }
+@media (max-width: 760px) { .cc-neural { grid-template-columns: 1fr; } .cc-neural canvas { display: none; } .chip { width: 96px; height: 96px; border-radius: 22px; } .chip-in { width: 60px; height: 60px; }   .cc-side { flex-direction: column; } .cc-row3 { grid-template-columns: 1fr; } .clock { display: none; } .cc-kpi .v { font-size: 1.7rem; } }
 .confirm { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-radius: 10px; background: var(--bad-soft); }
 .toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(86px + env(safe-area-inset-bottom, 0px)); background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 10px; font-weight: 500; z-index: 60; box-shadow: var(--shadow); }
 
@@ -294,7 +294,7 @@ input:focus, select:focus, textarea:focus { outline: none; border-color: var(--a
   .dock .nav-btn { flex-direction: column; gap: 3px; font-size: .68rem; padding: 6px 2px; align-items: center; }
   .dock .nav-btn.plus span.ic { width: 42px; height: 30px; border-radius: 10px; display: grid; place-items: center; background: var(--accent); color: var(--bg); }
   h1 { font-size: 1.35rem; }
-  .tile .v { font-size: 1.3rem; }
+  .tile .v { font-size: 1.55rem; }
   .tiles { grid-template-columns: 1fr 1fr; gap: 10px; }
   .tile { padding: 13px; }
   .tile .s { font-size: .72rem; }
@@ -933,10 +933,10 @@ function barChart(id, data, unit = '') {
   const fg = css('--fg'), mu = css('--muted'), ln = css('--line'), ac = css('--accent'), vi = css('--violet');
   c.setOption({
     grid: { left: 8, right: 54, top: 6, bottom: 6, containLabel: true },
-    xAxis: { type: 'value', splitLine: { lineStyle: { color: ln } }, axisLabel: { color: mu, fontFamily: 'Manrope' } },
-    yAxis: { type: 'category', data: data.map(d => d.n.length > 22 ? d.n.slice(0, 21) + '…' : d.n), axisLabel: { color: fg, fontSize: 11 }, axisLine: { lineStyle: { color: ln } }, axisTick: { show: false } },
+    xAxis: { type: 'value', splitLine: { lineStyle: { color: ln } }, axisLabel: { color: mu, fontFamily: 'Outfit, Inter, sans-serif' } },
+    yAxis: { type: 'category', data: data.map(d => d.n.length > 22 ? d.n.slice(0, 21) + '…' : d.n), axisLabel: { color: fg, fontSize: 12 }, axisLine: { lineStyle: { color: ln } }, axisTick: { show: false } },
     tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: css('--panel'), borderColor: ln, textStyle: { color: fg } },
-    series: [{ type: 'bar', data: data.map(d => +d.v.toFixed(2)), barMaxWidth: 16, itemStyle: { borderRadius: [0, 5, 5, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: vi }, { offset: 1, color: ac }]) }, label: { show: true, position: 'right', color: mu, fontFamily: 'Manrope', fontSize: 11, formatter: p => p.value + unit } }],
+    series: [{ type: 'bar', data: data.map(d => +d.v.toFixed(2)), barMaxWidth: 16, itemStyle: { borderRadius: [0, 5, 5, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: vi }, { offset: 1, color: ac }]) }, label: { show: true, position: 'right', color: mu, fontFamily: 'Outfit, Inter, sans-serif', fontSize: 12, formatter: p => p.value + unit } }],
   });
   c.on('click', p => { const d = data[p.dataIndex]; if (d && d.vid) go('op', d.vid); });
 }
@@ -1511,8 +1511,8 @@ afterRender.compare = () => {
   const mu = css('--muted'), ln = css('--line'), fg = css('--fg');
   c.setOption({ grid: { left: 8, right: 64, top: 6, bottom: 6, containLabel: true }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: css('--panel'), borderColor: ln, textStyle: { color: fg }, valueFormatter: v => inr(v) },
     xAxis: { type: 'value', splitLine: { lineStyle: { color: ln } }, axisLabel: { color: mu, formatter: v => v >= 1e5 ? (v / 1e5) + 'L' : v } },
-    yAxis: { type: 'category', data: lb.map(o => o.mine ? S.settings.owner + ' (me)' : o.name), axisLabel: { color: fg, fontSize: 11, fontWeight: 600 }, axisTick: { show: false }, axisLine: { lineStyle: { color: ln } } },
-    series: [{ type: 'bar', barMaxWidth: 16, data: lb.map(o => ({ value: Math.round(o.total), itemStyle: { color: o.mine ? css('--good') : css('--violet'), borderRadius: [0, 5, 5, 0] } })), label: { show: true, position: 'right', color: mu, fontSize: 11, formatter: p => inr(p.value) } }] });
+    yAxis: { type: 'category', data: lb.map(o => o.mine ? S.settings.owner + ' (me)' : o.name), axisLabel: { color: fg, fontSize: 12, fontWeight: 600 }, axisTick: { show: false }, axisLine: { lineStyle: { color: ln } } },
+    series: [{ type: 'bar', barMaxWidth: 16, data: lb.map(o => ({ value: Math.round(o.total), itemStyle: { color: o.mine ? css('--good') : css('--violet'), borderRadius: [0, 5, 5, 0] } })), label: { show: true, position: 'right', color: mu, fontSize: 12, formatter: p => inr(p.value) } }] });
 };
 
 // ---------- APPRAISAL ----------
@@ -1632,7 +1632,7 @@ afterRender.appraisal = () => {
     const c = echarts.init($('#ch-work'), null, { renderer: 'svg' }); charts.push(c);
     const mu = css('--muted'), ln = css('--line'), cv = { 'Revenue': '--c-rev', 'Product': '--c-pro', 'Hygiene': '--c-hyg', 'Non-revenue': '--c-nrv', 'Non-KRA': '--c-nkr' };
     const ms = D.perMonth.filter(r => NX.CATS.some(c => r[c]));
-    c.setOption({ grid: { left: 8, right: 8, top: 30, bottom: 4, containLabel: true }, legend: { top: 0, textStyle: { color: mu, fontSize: 11 }, itemWidth: 10, itemHeight: 8 }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: css('--panel'), borderColor: ln, textStyle: { color: css('--fg') } },
+    c.setOption({ grid: { left: 8, right: 8, top: 30, bottom: 4, containLabel: true }, legend: { top: 0, textStyle: { color: mu, fontSize: 12 }, itemWidth: 10, itemHeight: 8 }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: css('--panel'), borderColor: ln, textStyle: { color: css('--fg') } },
       xAxis: { type: 'category', data: ms.map(r => monLbl(r.m).slice(0, 3)), axisLabel: { color: mu }, axisLine: { lineStyle: { color: ln } } }, yAxis: { type: 'value', axisLabel: { color: mu }, splitLine: { lineStyle: { color: ln } } },
       series: NX.CATS.map((k, i) => ({ name: k, type: 'bar', stack: 'w', barMaxWidth: 28, data: ms.map(r => r[k]), itemStyle: { color: css(cv[k]), borderRadius: i === NX.CATS.length - 1 ? [4, 4, 0, 0] : 0 } })) });
   }
@@ -1681,15 +1681,15 @@ async function buildDeck(D) {
   const F = 'Segoe UI', span = monLbl(D.from) + ' – ' + monLbl(D.to);
   let n = 0;
   const slide = (title, kicker) => { const s = p.addSlide(); n++; s.background = { color: C.bg }; s.addShape(p.ShapeType.rect, { x: 0, y: 0, w: 0.12, h: 7.5, fill: { color: C.ice } });
-    s.addText(kicker || '', { x: 0.6, y: 0.35, w: 9, h: 0.3, fontFace: F, fontSize: 11, color: C.ice, bold: true, charSpacing: 3 });
+    s.addText(kicker || '', { x: 0.6, y: 0.35, w: 9, h: 0.3, fontFace: F, fontSize: 12, color: C.ice, bold: true, charSpacing: 3 });
     s.addText(title, { x: 0.6, y: 0.62, w: 12, h: 0.7, fontFace: F, fontSize: 28, color: C.fg, bold: true });
     s.addText(`${S.settings.owner} · ${span}`, { x: 0.6, y: 7.0, w: 8, h: 0.3, fontFace: F, fontSize: 9, color: C.mu }); s.addText(String(n), { x: 12.2, y: 7.0, w: 0.6, h: 0.3, fontFace: F, fontSize: 9, color: C.mu, align: 'right' }); return s; };
   const stat = (s, x, y, w, label, value, sub, color) => { s.addShape(p.ShapeType.roundRect, { x, y, w, h: 1.55, fill: { color: C.panel }, line: { color: C.line }, rectRadius: 0.12 });
-    s.addText(label.toUpperCase(), { x: x + 0.25, y: y + 0.18, w: w - 0.5, h: 0.3, fontFace: F, fontSize: 10, color: C.mu, bold: true, charSpacing: 2 });
+    s.addText(label.toUpperCase(), { x: x + 0.25, y: y + 0.18, w: w - 0.5, h: 0.3, fontFace: F, fontSize: 11, color: C.mu, bold: true, charSpacing: 2 });
     s.addText(value, { x: x + 0.25, y: y + 0.48, w: w - 0.5, h: 0.6, fontFace: F, fontSize: 30, color: color || C.fg, bold: true });
-    s.addText(sub || '', { x: x + 0.25, y: y + 1.1, w: w - 0.5, h: 0.3, fontFace: F, fontSize: 10, color: C.mu }); };
+    s.addText(sub || '', { x: x + 0.25, y: y + 1.1, w: w - 0.5, h: 0.3, fontFace: F, fontSize: 11, color: C.mu }); };
   const tbl = (s, head, rows, opt) => { const H = head.map(h => ({ text: h, options: { bold: true, color: C.mu, fill: { color: C.panel }, fontSize: 10 } }));
-    s.addTable([H].concat(rows.map(r => r.map(c => (typeof c === 'object' && c !== null) ? c : { text: String(c ?? ''), options: {} }))), Object.assign({ x: 0.6, y: 1.55, w: 12.1, fontFace: F, fontSize: 11, color: C.fg, border: { type: 'solid', pt: 0.5, color: C.line }, fill: { color: C.bg }, autoPage: false, rowH: 0.36 }, opt || {})); };
+    s.addTable([H].concat(rows.map(r => r.map(c => (typeof c === 'object' && c !== null) ? c : { text: String(c ?? ''), options: {} }))), Object.assign({ x: 0.6, y: 1.55, w: 12.1, fontFace: F, fontSize: 12, color: C.fg, border: { type: 'solid', pt: 0.5, color: C.line }, fill: { color: C.bg }, autoPage: false, rowH: 0.36 }, opt || {})); };
   // 1 title
   { const s = p.addSlide(); n++; s.background = { color: C.bg };
     s.addShape(p.ShapeType.ellipse, { x: 8.6, y: -2.2, w: 6.5, h: 6.5, fill: { color: '1E1B3F' }, line: { color: '1E1B3F' } });
@@ -1698,7 +1698,7 @@ async function buildDeck(D) {
     s.addText(S.settings.owner, { x: 0.8, y: 2.6, w: 10, h: 1.1, fontFace: F, fontSize: 54, color: C.fg, bold: true });
     s.addText('Key Account Manager · Chennai', { x: 0.8, y: 3.7, w: 10, h: 0.5, fontFace: F, fontSize: 20, color: C.mu });
     s.addText(span, { x: 0.8, y: 4.3, w: 10, h: 0.5, fontFace: F, fontSize: 20, color: C.vio, bold: true });
-    s.addText('Prepared with Nexora from KRA scorecards, daily work logs, weekly updates and uploaded reports', { x: 0.8, y: 6.6, w: 11, h: 0.4, fontFace: F, fontSize: 11, color: C.mu }); }
+    s.addText('Prepared with Nexora from KRA scorecards, daily work logs, weekly updates and uploaded reports', { x: 0.8, y: 6.6, w: 11, h: 0.4, fontFace: F, fontSize: 12, color: C.mu }); }
   // 2 at a glance
   { const s = slide('At a glance', 'SUMMARY'); const g = D.growth.find(x => x.k === 'gmvM'), a = D.growth.find(x => x.k === 'adsRevenue');
     stat(s, 0.6, 1.6, 2.9, 'Avg KRA score', D.avgSelf === null ? '–' : D.avgSelf.toFixed(1) + '%', `${D.above100} of ${D.kraRows.length} months ≥ 100%`, D.avgSelf >= 100 ? C.good : C.warn);
@@ -1712,11 +1712,11 @@ async function buildDeck(D) {
     const labels = D.kraRows.map(r => monLbl(r.m).slice(0, 3));
     const series = [{ name: 'Self score %', labels, values: D.kraRows.map(r => +r.self.toFixed(2)) }]; if (D.kraRows.some(r => r.mgr !== null)) series.push({ name: 'Manager %', labels, values: D.kraRows.map(r => r.mgr === null ? 0 : +r.mgr.toFixed(2)) });
     s.addChart(p.ChartType.bar, series, { x: 0.6, y: 1.5, w: 7.6, h: 5.2, barGrouping: 'clustered', chartColors: [C.ice, C.vio], catAxisLabelColor: C.mu, valAxisLabelColor: C.mu, valGridLine: { color: C.line, size: 0.5 }, catAxisLineShow: false, valAxisLineShow: false, showLegend: true, legendPos: 't', legendColor: C.mu, legendFontFace: F, showValue: true, dataLabelColor: C.fg, dataLabelFontSize: 9, dataLabelFormatCode: '0.0', valAxisMinVal: 0 });
-    tbl(s, ['Month', 'Status', 'Self', 'Manager'], D.kraRows.map(r => [monLbl(r.m), r.status === 'final' ? 'Final' : 'Draft', { text: r.self.toFixed(2) + '%', options: { color: r.self >= 100 ? C.good : r.self >= 80 ? C.warn : C.bad, bold: true } }, r.mgr === null ? '–' : r.mgr.toFixed(2) + '%']), { x: 8.5, w: 4.2, fontSize: 10, rowH: 0.32 }); }
+    tbl(s, ['Month', 'Status', 'Self', 'Manager'], D.kraRows.map(r => [monLbl(r.m), r.status === 'final' ? 'Final' : 'Draft', { text: r.self.toFixed(2) + '%', options: { color: r.self >= 100 ? C.good : r.self >= 80 ? C.warn : C.bad, bold: true } }, r.mgr === null ? '–' : r.mgr.toFixed(2) + '%']), { x: 8.5, w: 4.2, fontSize: 11, rowH: 0.32 }); }
   // 4 KRA-wise
   if (D.kraCats.length) { const s = slide('KRA-wise achievement', 'KRA');
     tbl(s, ['KRA', 'Months', 'Average', 'Best', 'Latest'], D.kraCats.slice(0, 13).map(c => [c.name, String(c.months), { text: c.avg === null ? '–' : c.avg.toFixed(0) + '%', options: { bold: true, color: c.avg === null ? C.fg : c.avg >= 100 ? C.good : c.avg >= 80 ? C.warn : C.bad } }, c.best === null ? '–' : c.best.toFixed(0) + '% (' + monLbl(c.bestM).slice(0, 3) + ')', c.last === null ? '–' : c.last.toFixed(0) + '%']), { colW: [5.3, 1.3, 1.8, 2.1, 1.6] });
-    s.addText(`Achievement is capped at ${kraCap()}% per KRA. Lower-is-better KRAs score target ÷ actual.`, { x: 0.6, y: 6.55, w: 12, h: 0.3, fontFace: F, fontSize: 10, color: C.mu }); }
+    s.addText(`Achievement is capped at ${kraCap()}% per KRA. Lower-is-better KRAs score target ÷ actual.`, { x: 0.6, y: 6.55, w: 12, h: 0.3, fontFace: F, fontSize: 11, color: C.mu }); }
   // 5 growth
   if (D.growth.length) { const s = slide('What increased, what dropped', 'BUSINESS IMPACT');
     tbl(s, ['Metric', 'Start', 'Latest', 'Change'], D.growth.map(x => [x.l, gfmt(x.a, x.t) + '  (' + monLbl(x.am).slice(0, 3) + ')', gfmt(x.b, x.t) + '  (' + monLbl(x.bm).slice(0, 3) + ')', { text: x.ch === null ? '–' : (x.ch >= 0 ? '▲ +' : '▼ ') + x.ch.toFixed(1) + '%', options: { bold: true, color: x.ch === null ? C.mu : x.good ? C.good : C.bad } }]), { colW: [4.4, 2.9, 2.9, 1.9] }); }
@@ -1731,10 +1731,10 @@ async function buildDeck(D) {
   // 8 beyond KRA + top accounts
   if (D.nonKra.length || D.topOps.length) { const s = slide('Beyond KRA', 'CONTRIBUTION');
     if (D.nonKra.length) s.addText(D.nonKra.slice(0, 9).map(l => ({ text: l.text, options: { bullet: { code: '25A0' }, breakLine: true } })), { x: 0.6, y: 1.5, w: 7.6, h: 5.2, fontFace: F, fontSize: 13, color: C.fg, paraSpaceAfter: 6, valign: 'top' });
-    if (D.topOps.length) { s.addText('ACCOUNTS I WORKED ON MOST', { x: 8.6, y: 1.5, w: 4.1, h: 0.3, fontFace: F, fontSize: 10, color: C.mu, bold: true, charSpacing: 2 }); tbl(s, ['Operator', 'Activities'], D.topOps.map(([v, k]) => [opName(v), String(k)]), { x: 8.6, y: 1.9, w: 4.1, colW: [3, 1.1], fontSize: 10 }); } }
+    if (D.topOps.length) { s.addText('ACCOUNTS I WORKED ON MOST', { x: 8.6, y: 1.5, w: 4.1, h: 0.3, fontFace: F, fontSize: 11, color: C.mu, bold: true, charSpacing: 2 }); tbl(s, ['Operator', 'Activities'], D.topOps.map(([v, k]) => [opName(v), String(k)]), { x: 8.6, y: 1.9, w: 4.1, colW: [3, 1.1], fontSize: 10 }); } }
   // 9 self assessment + inputs
   { const s = slide('Self-assessment', 'IN MY WORDS'); const txt = ($('#apnarr') ? $('#apnarr').value : apNarrative(D)).split('\n').filter(x => !x.startsWith('Self-assessment')).join('\n').trim();
-    s.addText(txt.slice(0, 1800), { x: 0.6, y: 1.5, w: 12.1, h: 5.3, fontFace: F, fontSize: 11, color: C.fg, valign: 'top', fit: 'shrink' }); }
+    s.addText(txt.slice(0, 1800), { x: 0.6, y: 1.5, w: 12.1, h: 5.3, fontFace: F, fontSize: 12, color: C.fg, valign: 'top', fit: 'shrink' }); }
   if ((S.appraisal.inputs || '').trim()) { const s = slide('My inputs & way forward', 'NEXT YEAR'); s.addText(S.appraisal.inputs.trim().split('\n').filter(Boolean).map(t => ({ text: t.replace(/^[•\-*]\s*/, ''), options: { bullet: { code: '25B8' }, breakLine: true } })), { x: 0.6, y: 1.5, w: 12.1, h: 5.3, fontFace: F, fontSize: 15, color: C.fg, paraSpaceAfter: 8, valign: 'top' }); }
   try { const blob = await p.write({ outputType: 'blob' }); window.__lastDeck = blob; await saveFile(`Nexora_Appraisal_${S.settings.owner}_${D.from}_to_${D.to}.pptx`, blob); }
   catch (e) { toast('Could not build the deck: ' + e.message); }
@@ -1851,20 +1851,20 @@ afterRender.pulse = () => {
     if (el1) { const c = echarts.init(el1, null, { renderer: 'svg' }); charts.push(c);
       if (gs.length >= 2) c.setOption({ grid: { left: 6, right: 62, top: 14, bottom: 4, containLabel: true }, tooltip: Object.assign({ trigger: 'axis', valueFormatter: v => '₹' + v.toFixed(1) + ' M' }, tip), xAxis: { type: 'category', boundaryGap: false, data: gs.map(p => monLbl(p[0]).slice(0, 3)), axisLabel: { color: mu }, axisLine: { lineStyle: { color: ln } } }, yAxis: { type: 'value', axisLabel: { color: mu }, splitLine: { lineStyle: { color: ln, type: 'dashed' } } },
         series: [{ type: 'line', smooth: true, data: gs.map(p => +p[1].toFixed(2)), symbol: 'circle', symbolSize: 6, lineStyle: { width: 3, color: ac, shadowColor: ac, shadowBlur: 12 }, itemStyle: { color: ac }, areaStyle: { color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: ac + '55' }, { offset: 1, color: ac + '00' }]) }, endLabel: { show: true, color: fg, fontWeight: 700, formatter: p => '₹' + p.value + 'M' } }] });
-      else { const rows = M.rows.filter(r => r.kam && r.kam.gmvM).slice(0, 8).reverse(); c.setOption({ grid: { left: 6, right: 48, top: 6, bottom: 4, containLabel: true }, tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' } }, tip), xAxis: { type: 'value', axisLabel: { color: mu }, splitLine: { lineStyle: { color: ln, type: 'dashed' } } }, yAxis: { type: 'category', data: rows.map(r => { const n = opName(r.vid); return n.length > 18 ? n.slice(0, 17) + '…' : n; }), axisLabel: { color: fg, fontSize: 11 }, axisTick: { show: false }, axisLine: { lineStyle: { color: ln } } }, series: [{ type: 'bar', barMaxWidth: 12, data: rows.map(r => +r.kam.gmvM.toFixed(2)), itemStyle: { borderRadius: [0, 6, 6, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: vi }, { offset: 1, color: ac }]) }, label: { show: true, position: 'right', color: mu, fontSize: 11 } }] }); c.on('click', p => { const r = rows[p.dataIndex]; if (r) go('op', r.vid); }); }
+      else { const rows = M.rows.filter(r => r.kam && r.kam.gmvM).slice(0, 8).reverse(); c.setOption({ grid: { left: 6, right: 48, top: 6, bottom: 4, containLabel: true }, tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' } }, tip), xAxis: { type: 'value', axisLabel: { color: mu }, splitLine: { lineStyle: { color: ln, type: 'dashed' } } }, yAxis: { type: 'category', data: rows.map(r => { const n = opName(r.vid); return n.length > 18 ? n.slice(0, 17) + '…' : n; }), axisLabel: { color: fg, fontSize: 12 }, axisTick: { show: false }, axisLine: { lineStyle: { color: ln } } }, series: [{ type: 'bar', barMaxWidth: 12, data: rows.map(r => +r.kam.gmvM.toFixed(2)), itemStyle: { borderRadius: [0, 6, 6, 0], color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [{ offset: 0, color: vi }, { offset: 1, color: ac }]) }, label: { show: true, position: 'right', color: mu, fontSize: 12 } }] }); c.on('click', p => { const r = rows[p.dataIndex]; if (r) go('op', r.vid); }); }
     }
     const el2 = $('#ch-donut');
     if (el2) { const c = echarts.init(el2, null, { renderer: 'svg' }); charts.push(c);
       const rows = M.rows.filter(r => r.kam && r.kam.gmvM); const top = rows.slice(0, 4), rest = rows.slice(4).reduce((s, r) => s + r.kam.gmvM, 0); const tot = rows.reduce((s, r) => s + r.kam.gmvM, 0);
       const data = top.map(r => ({ name: opName(r.vid), value: +r.kam.gmvM.toFixed(2) })).concat(rest ? [{ name: 'Others', value: +rest.toFixed(2) }] : []);
-      c.setOption({ tooltip: Object.assign({ trigger: 'item', valueFormatter: v => '₹' + v + ' M' }, tip), color: [ac, am, gd, vi, mu], legend: { orient: 'vertical', right: 0, top: 'middle', textStyle: { color: mu, fontSize: 11 }, itemWidth: 9, itemHeight: 9, formatter: n => { const d = data.find(x => x.name === n); const s = n.length > 14 ? n.slice(0, 13) + '…' : n; return d && tot ? `${s}  ${(d.value / tot * 100).toFixed(0)}%` : s; } },
-        series: [{ type: 'pie', radius: ['50%', '68%'], center: ['26%', '50%'], avoidLabelOverlap: true, label: { show: true, position: 'center', formatter: () => `{a|₹${(tot / 10).toFixed(1)} Cr}\n{b|Total GMV}`, rich: { a: { color: fg, fontSize: 17, fontWeight: 800, fontFamily: 'Manrope, Segoe UI, sans-serif' }, b: { color: mu, fontSize: 10, padding: [4, 0, 0, 0] } } }, itemStyle: { borderColor: css('--panel'), borderWidth: 3, borderRadius: 4 }, data }] });
+      c.setOption({ tooltip: Object.assign({ trigger: 'item', valueFormatter: v => '₹' + v + ' M' }, tip), color: [ac, am, gd, vi, mu], legend: { orient: 'vertical', right: 0, top: 'middle', textStyle: { color: mu, fontSize: 12 }, itemWidth: 9, itemHeight: 9, formatter: n => { const d = data.find(x => x.name === n); const s = n.length > 14 ? n.slice(0, 13) + '…' : n; return d && tot ? `${s}  ${(d.value / tot * 100).toFixed(0)}%` : s; } },
+        series: [{ type: 'pie', radius: ['50%', '68%'], center: ['26%', '50%'], avoidLabelOverlap: true, label: { show: true, position: 'center', formatter: () => `{a|₹${(tot / 10).toFixed(1)} Cr}\n{b|Total GMV}`, rich: { a: { color: fg, fontSize: 17, fontWeight: 800, fontFamily: 'Outfit, Inter, sans-serif' }, b: { color: mu, fontSize: 11, padding: [4, 0, 0, 0] } } }, itemStyle: { borderColor: css('--panel'), borderWidth: 3, borderRadius: 4 }, data }] });
       c.on('click', p => { const r = top[p.dataIndex]; if (r) go('op', r.vid); }); }
     const el3 = $('#ch-ads');
     if (el3) { const c = echarts.init(el3, null, { renderer: 'svg' }); charts.push(c);
       const rows = M.rows.filter(r => r.slRevenue || r.srpCost).sort((a, b) => (b.slRevenue + b.srpCost) - (a.slRevenue + a.srpCost)).slice(0, 8);
-      c.setOption({ grid: { left: 6, right: 8, top: 26, bottom: 4, containLabel: true }, legend: { top: 0, right: 0, textStyle: { color: mu, fontSize: 11 }, itemWidth: 10, itemHeight: 8 }, tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: v => inr(v) }, tip),
-        xAxis: { type: 'category', data: rows.map(r => { const n = opName(r.vid); return n.length > 8 ? n.slice(0, 7) + '…' : n; }), axisLabel: { color: mu, fontSize: 10, interval: 0, rotate: rows.length > 5 ? 30 : 0 }, axisLine: { lineStyle: { color: ln } } }, yAxis: { type: 'value', axisLabel: { color: mu, formatter: v => v >= 1e5 ? v / 1e5 + 'L' : v >= 1e3 ? v / 1e3 + 'k' : v }, splitLine: { lineStyle: { color: ln, type: 'dashed' } } },
+      c.setOption({ grid: { left: 6, right: 8, top: 26, bottom: 4, containLabel: true }, legend: { top: 0, right: 0, textStyle: { color: mu, fontSize: 12 }, itemWidth: 10, itemHeight: 8 }, tooltip: Object.assign({ trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: v => inr(v) }, tip),
+        xAxis: { type: 'category', data: rows.map(r => { const n = opName(r.vid); return n.length > 8 ? n.slice(0, 7) + '…' : n; }), axisLabel: { color: mu, fontSize: 11, interval: 0, rotate: rows.length > 5 ? 30 : 0 }, axisLine: { lineStyle: { color: ln } } }, yAxis: { type: 'value', axisLabel: { color: mu, formatter: v => v >= 1e5 ? v / 1e5 + 'L' : v >= 1e3 ? v / 1e3 + 'k' : v }, splitLine: { lineStyle: { color: ln, type: 'dashed' } } },
         series: [{ name: 'SL', type: 'bar', stack: 'a', barMaxWidth: 18, data: rows.map(r => r.slRevenue), itemStyle: { color: ac } }, { name: 'SRP', type: 'bar', stack: 'a', barMaxWidth: 18, data: rows.map(r => r.srpCost), itemStyle: { color: am, borderRadius: [4, 4, 0, 0] } }] });
       c.on('click', p => { const r = rows[p.dataIndex]; if (r) go('op', r.vid); }); }
   }
