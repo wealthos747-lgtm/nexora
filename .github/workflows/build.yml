@@ -34,22 +34,10 @@ jobs:
       - name: Version
         run: |
           sed -i "s/versionCode 1/versionCode ${{ github.run_number }}/; s/versionName \"1.0\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
-      - name: Build APK (release-signed when the key password secret is set)
-        env:
-          KEY_PASS: ${{ secrets.NEXORA_KEY_PASS }}
-        run: |
-          cd android && chmod +x gradlew
-          if [ -n "$KEY_PASS" ]; then
-            ./gradlew assembleRelease --no-daemon
-            BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
-            $BT/zipalign -p -f 4 app/build/outputs/apk/release/app-release-unsigned.apk ../aligned.apk
-            $BT/apksigner sign --ks ../signing/nexora-release.p12 --ks-type PKCS12 --ks-key-alias nexora --ks-pass env:KEY_PASS --key-pass env:KEY_PASS --out ../Nexora-1.0.${{ github.run_number }}.apk ../aligned.apk
-            $BT/apksigner verify --print-certs ../Nexora-1.0.${{ github.run_number }}.apk | head -3
-          else
-            echo "::warning::NEXORA_KEY_PASS secret not set - building a debug APK"
-            ./gradlew assembleDebug --no-daemon
-            cp app/build/outputs/apk/debug/app-debug.apk ../Nexora-1.0.${{ github.run_number }}.apk
-          fi
+      - name: Build APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug --no-daemon
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk Nexora-1.0.${{ github.run_number }}.apk
       - uses: actions/upload-artifact@v4
         with: { name: Nexora-apk, path: "Nexora-*.apk" }
       - uses: softprops/action-gh-release@v2

@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#0B1020"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><link rel="apple-touch-icon" href="icon-192.png">
+<meta name="theme-color" content="#0B1020"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="icon-192.png"><script src="lib/supabase.js"></script><link rel="apple-touch-icon" href="icon-192.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font-size:14px}img{max-width:100%}[hidden]{display:none!important}</style>
 </head><body>
 <title>Nexora</title>
@@ -854,7 +854,7 @@ const DB = {
   async set(k, v) { try { const db = await this.open(); await new Promise(res => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); } catch (e) { } },
 };
 let saveTimer = null;
-function save() { clearTimeout(saveTimer); saveTimer = setTimeout(() => DB.set('state', S), 250); }
+function save() { S.savedAt = Date.now(); clearTimeout(saveTimer); saveTimer = setTimeout(() => DB.set('state', S), 250); if (typeof schedulePush === 'function') schedulePush(); }
 
 // ======================= DEMO DATA (fictional) =======================
 function demoData() {
@@ -955,7 +955,7 @@ function render() {
   renderNav();
   const v = $('#view');
   const fn = { pulse: vPulse, operators: vOperators, op: vOp, services: vServices, routes: vRoutes, ads: vAds, log: vLog, mail: vMail, formula: vFormula, kra: vKra, trackers: vTrackers, compare: vCompare, appraisal: vAppraisal, upload: vUpload, settings: vSettings }[VIEW] || vPulse;
-  v.innerHTML = appBar() + (S.demo && VIEW !== 'upload' ? demoBanner() : '') + fn(); tick();
+  v.innerHTML = appBar() + (S.demo && VIEW !== 'upload' ? demoBanner() : '') + fn(); tick(); syncBadge();
   (afterRender[VIEW] || (() => { }))();
 }
 const afterRender = {};
@@ -1942,11 +1942,93 @@ function appBar() {
   const lbl = (NAV.find(n => n.id === VIEW) || { label: VIEW === 'op' ? 'Operator 360' : 'Pulse' }).label;
   const hi = M ? M.alerts.filter(a => a.sev === 'high').length : 0;
   return `<div class="appbar"><div class="crumb"><span class="mark-s">${LOGO}</span><span>Nexora</span><span class="sep">/</span><b>${esc(lbl)}</b></div>
-    <div class="ab-r"><span class="pill good"><span class="dot live"></span>${S.demo ? 'Demo' : 'Live'}</span><span class="clock mono" id="clock"></span>
+    <div class="ab-r"><span class="pill" id="syncpill"></span><span class="clock mono" id="clock"></span>
     <button class="icon-btn bell" data-go="pulse" aria-label="${hi} high-priority alerts">${I.bell}${hi ? `<i>${hi}</i>` : ''}</button><span class="avatar">${esc((S.settings.owner || 'S').split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase())}</span></div></div>`;
 }
 function tick() { const el = document.getElementById('clock'); if (el) el.textContent = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }); }
 setInterval(tick, 20000);
+
+// ---------- CLOUD SYNC (website + Android app; the Claude preview stays local) ----------
+// One gzip file per user in a private Supabase bucket. Last save wins. Demo data is never uploaded.
+const CLOUD = { url: 'https://qcamnrymnnxkypuwcpmd.supabase.co', key: 'sb_publishable_p1a5Wnw6zvXmsfUPOyQk3Q_IAHWBPcF' };
+let sb = null;
+const SY = { user: null, state: 'local', last: null, busy: false, err: '' };
+const cloudOn = () => /^https:\/\//.test(CLOUD.url) && !!window.supabase;
+const cloudPath = () => SY.user.id + '/state.json.gz';
+async function gz(str) { const cs = new CompressionStream('gzip'); const w = cs.writable.getWriter(); w.write(new TextEncoder().encode(str)); w.close(); return new Blob([await new Response(cs.readable).arrayBuffer()], { type: 'application/gzip' }); }
+async function gunz(blob) { const ds = new DecompressionStream('gzip'); return await new Response(blob.stream().pipeThrough(ds)).text(); }
+function syncBadge() { const el = document.getElementById('syncpill'); if (!el) return; const m = { synced: ['good', 'Synced'], syncing: ['acc', 'Syncing…'], error: ['bad', 'Sync error'], local: ['', 'This device'], demo: ['vio', 'Demo'] }; const k = S.demo ? 'demo' : SY.state; el.className = 'pill ' + m[k][0]; el.innerHTML = (k === 'synced' ? '<span class="dot live"></span>' : '') + m[k][1]; }
+async function cloudInit() {
+  if (!cloudOn()) return;
+  try {
+    sb = window.supabase.createClient(CLOUD.url, CLOUD.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false } });
+    const { data } = await sb.auth.getSession(); SY.user = data.session ? data.session.user : null;
+    sb.auth.onAuthStateChange((_e, s) => { SY.user = s ? s.user : null; if (!SY.user) SY.state = 'local'; syncBadge(); });
+    if (SY.user) await cloudPull(true);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && SY.user) cloudPull(); });
+    try { sb.from('nexora_ping').select('id').limit(1).then(() => { }); } catch (e) { }
+  } catch (e) { SY.state = 'error'; SY.err = e.message; }
+  syncBadge();
+}
+async function cloudPull(first) {
+  if (!sb || !SY.user || SY.busy) return; SY.busy = true; SY.state = 'syncing'; syncBadge();
+  try {
+    const { data, error } = await sb.storage.from('nexora').download(cloudPath() + '?t=' + Date.now());
+    if (error) {
+      if (/not.?found|object not found|400|404/i.test(error.message || '') || error.statusCode === '404') { SY.busy = false; if (!S.demo) await cloudPush(); else { SY.state = 'synced'; } syncBadge(); return; }
+      throw error;
+    }
+    const remote = JSON.parse(await gunz(data));
+    if (S.demo || (remote.savedAt || 0) > (S.savedAt || 0)) {
+      S = Object.assign({}, S, remote); S.demo = false; rebuild(); await DB.set('state', S); SY.last = Date.now(); SY.state = 'synced';
+      if (!first) toast('Updated from your other device'); render();
+    } else if ((S.savedAt || 0) > (remote.savedAt || 0)) { SY.busy = false; await cloudPush(); return; }
+    else { SY.state = 'synced'; SY.last = Date.now(); }
+  } catch (e) { SY.state = 'error'; SY.err = e.message || String(e); }
+  SY.busy = false; syncBadge();
+}
+let pushTimer = null;
+function schedulePush() { if (!sb || !SY.user || S.demo) return; clearTimeout(pushTimer); pushTimer = setTimeout(cloudPush, 3000); }
+async function cloudPush() {
+  if (!sb || !SY.user || S.demo) return; if (SY.busy) { schedulePush(); return; }
+  SY.busy = true; SY.state = 'syncing'; syncBadge();
+  try {
+    const blob = await gz(JSON.stringify(S));
+    const { error } = await sb.storage.from('nexora').upload(cloudPath(), blob, { upsert: true, contentType: 'application/gzip', cacheControl: '0' });
+    if (error) throw error;
+    SY.state = 'synced'; SY.last = Date.now();
+  } catch (e) { SY.state = 'error'; SY.err = e.message || String(e); }
+  SY.busy = false; syncBadge();
+}
+function cloudCard() {
+  if (!cloudOn()) return `<section class="card"><h2>Cloud sync</h2><p class="muted" style="margin:0">Sync between phone and laptop works in the Nexora website and Android app. This preview keeps data in this browser only.</p></section>`;
+  if (!SY.user) return `<section class="card"><div class="card-h"><h2>Cloud sync</h2><span class="pill">Off</span></div>
+    <p class="muted" style="margin:0">Sign in with the same email and password on your phone and laptop. Your data goes to your own private Supabase storage and only this login can read it.</p>
+    <div class="row"><div class="field"><label for="sy-e">Email</label><input type="text" id="sy-e" autocomplete="username" inputmode="email"></div><div class="field"><label for="sy-p">Password</label><input type="password" id="sy-p" autocomplete="current-password" style="background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:8px 10px;width:100%"></div></div>
+    <div class="actions"><button class="btn primary" id="sy-in">Sign in</button><button class="btn" id="sy-up">Create account (first time)</button></div><p class="muted" id="sy-msg" style="margin:0;font-size:var(--t-cap)"></p></section>`;
+  return `<section class="card"><div class="card-h"><h2>Cloud sync</h2><span class="pill ${SY.state === 'error' ? 'bad' : 'good'}">${SY.state === 'error' ? 'Error' : 'On'}</span></div>
+    <div class="kv"><div><span>Signed in as</span><b style="font-size:1rem">${esc(SY.user.email || '')}</b></div><div><span>Last synced</span><b style="font-size:1rem">${SY.last ? new Date(SY.last).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : '–'}</b></div></div>
+    ${SY.state === 'error' ? `<p class="muted" style="margin:0;color:var(--bad)">${esc(SY.err)}</p>` : ''}
+    <div class="actions"><button class="btn primary" id="sy-now">Sync now</button><button class="btn" id="sy-out">Sign out</button></div>
+    <p class="muted" style="margin:0;font-size:var(--t-cap)">Changes upload a few seconds after you make them and download when you open the app. If both devices change at once, the later save wins.</p></section>`;
+}
+function bindCloud() {
+  const msg = t => { const m = $('#sy-msg'); if (m) m.textContent = t; };
+  const go = async up => {
+    const email = ($('#sy-e').value || '').trim(), password = $('#sy-p').value || '';
+    if (!email || password.length < 6) return msg('Enter your email and a password of at least 6 characters.');
+    msg(up ? 'Creating your account…' : 'Signing in…');
+    const r = up ? await sb.auth.signUp({ email, password }) : await sb.auth.signInWithPassword({ email, password });
+    if (r.error) return msg(r.error.message);
+    SY.user = (r.data && (r.data.user || (r.data.session && r.data.session.user))) || null;
+    if (!SY.user || !r.data.session) return msg('Account created. Check your email to confirm, then sign in.');
+    toast('Signed in — syncing'); await cloudPull(true); render();
+  };
+  const i = $('#sy-in'); if (i) i.addEventListener('click', () => go(false));
+  const u = $('#sy-up'); if (u) u.addEventListener('click', () => go(true));
+  const n = $('#sy-now'); if (n) n.addEventListener('click', async () => { await cloudPull(); render(); });
+  const o = $('#sy-out'); if (o) o.addEventListener('click', async () => { await sb.auth.signOut(); SY.user = null; SY.state = 'local'; render(); toast('Signed out — data stays on this device'); });
+}
 
 // ---------- UPLOAD ----------
 let lastResults = [];
@@ -2008,7 +2090,7 @@ let confirmReset = false;
 function vSettings() {
   const T = S.settings.T;
   const th = [['ybMin', 'YB assignment target %'], ['lqsMin', 'LQS minimum %'], ['busCancelMax', 'Bus cancel limit %'], ['ratingMin', 'Rating minimum'], ['redDealMin', 'Red Deal share minimum %'], ['roasMin', 'ROAS minimum ×'], ['liqLow', 'Low liquidation below %'], ['notAssignedMax', 'Service not-assigned limit %'], ['apiCancelMax', 'API cancels alert above']];
-  return head('Settings', { eyebrow: 'Workspace · RedBus KAM' }) +
+  return head('Settings', { eyebrow: 'Workspace · RedBus KAM' }) + cloudCard() +
     `<div class="grid2"><section class="card"><h2>You</h2>
       <div class="field"><label for="owner">Display name</label><input type="text" id="owner" value="${esc(S.settings.owner)}"></div>
       <div class="field"><label for="names">Your names in reports, comma separated</label><input type="text" id="names" value="${esc(S.settings.names)}"></div>
@@ -2024,6 +2106,7 @@ function vSettings() {
     </section>`;
 }
 afterRender.settings = () => {
+  bindCloud();
   $('#owner').addEventListener('change', e => { S.settings.owner = e.target.value.trim() || 'Suresh'; save(); toast('Saved'); });
   $('#names').addEventListener('change', e => { S.settings.names = e.target.value; rebuild(); save(); render(); toast('Your rows re-selected'); });
   $('#kcap').addEventListener('change', e => { const v = parseFloat(e.target.value); if (v > 0) { S.settings.kraCap = v; save(); toast('KRA cap set to ' + v + '%'); } });
@@ -2073,6 +2156,7 @@ function loadDemo() {
   const h = (location.hash || '').slice(1);
   if (h.startsWith('op-')) { VIEW = 'op'; VIEWARG = h.slice(3); } else if (NAV.some(n => n.id === h)) VIEW = h;
   render();
+  cloudInit();
 })();
 </script>
 
