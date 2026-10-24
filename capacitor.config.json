@@ -1,0 +1,9 @@
+{
+  "appId": "com.suresh.nexora",
+  "appName": "Nexora",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false
+  },
+  "backgroundColor": "#0B1020"
+}
