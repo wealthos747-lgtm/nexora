@@ -1950,7 +1950,7 @@ setInterval(tick, 20000);
 
 // ---------- CLOUD SYNC (website + Android app; the Claude preview stays local) ----------
 // One gzip file per user in a private Supabase bucket. Last save wins. Demo data is never uploaded.
-const CLOUD = { url: 'https://qcamnrymnnxkypuwcpmd.supabase.co', key: 'sb_publishable_p1a5Wnw6zvXmsfUPOyQk3Q_IAHWBPcF' };
+const CLOUD = { url: 'https://qcamnrymnnxkypuwcpmd.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjYW1ucnltbm54a3lwdXdjcG1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4MzMwNzMsImV4cCI6MjEwODQwOTA3M30.Wt-kv6vRPA_CE6rJyQJq0GMVnd77p56b6JZ6q6yTWKU' };
 let sb = null;
 const SY = { user: null, state: 'local', last: null, busy: false, err: '' };
 const cloudOn = () => /^https:\/\//.test(CLOUD.url) && !!window.supabase;

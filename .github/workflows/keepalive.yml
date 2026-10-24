@@ -11,10 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Ping Supabase
+        env:
+          URL: https://qcamnrymnnxkypuwcpmd.supabase.co
+          KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFjYW1ucnltbm54a3lwdXdjcG1kIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI4MzMwNzMsImV4cCI6MjEwODQwOTA3M30.Wt-kv6vRPA_CE6rJyQJq0GMVnd77p56b6JZ6q6yTWKU
         run: |
-          code=$(curl -s -o out.txt -w "%{http_code}" "https://qcamnrymnnxkypuwcpmd.supabase.co/rest/v1/nexora_ping?select=id" -H "apikey: sb_publishable_p1a5Wnw6zvXmsfUPOyQk3Q_IAHWBPcF")
-          echo "HTTP $code"; cat out.txt; echo
+          code=$(curl -s -o out.txt -w "%{http_code}" "$URL/rest/v1/nexora_ping?select=id" -H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          echo "rest HTTP $code"; cat out.txt; echo
           [ "$code" = "200" ]
-          code=$(curl -s -o /dev/null -w "%{http_code}" "https://qcamnrymnnxkypuwcpmd.supabase.co/auth/v1/settings" -H "apikey: sb_publishable_p1a5Wnw6zvXmsfUPOyQk3Q_IAHWBPcF")
-          echo "auth HTTP $code"; [ "$code" = "200" ]
-          curl -s "https://qcamnrymnnxkypuwcpmd.supabase.co/auth/v1/settings" -H "apikey: sb_publishable_p1a5Wnw6zvXmsfUPOyQk3Q_IAHWBPcF" | python3 -c "import sys,json; d=json.load(sys.stdin); print('email signup on:', d['external'].get('email'), '| confirm email off:', d.get('mailer_autoconfirm'))"
+          curl -s "$URL/auth/v1/settings" -H "apikey: $KEY" | python3 -c "import sys,json; d=json.load(sys.stdin); print('email provider on:', d['external'].get('email'), '| auto-confirm (confirm email OFF):', d.get('mailer_autoconfirm'))"
