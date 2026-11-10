@@ -1097,7 +1097,7 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 
 const myNames = () => String(S.settings.names || S.settings.owner || '').split(',').map(x => x.trim()).filter(Boolean);
 const mineDS = () => NX.mineOnly(S.datasets, myNames());
-function rebuild() { if (rdCleanup()) setTimeout(save, 0); M = NX.model(S.datasets, S.settings.T, myNames()); maskIdx = new Map(); M.rows.forEach(r => opName(r.vid)); snapshot(); }
+function rebuild() { if (rdCleanup() | kraAutoLink()) setTimeout(save, 0); M = NX.model(S.datasets, S.settings.T, myNames()); maskIdx = new Map(); M.rows.forEach(r => opName(r.vid)); snapshot(); }
 // monthly snapshot of my portfolio, kept for the appraisal story
 function kamMonthKpi(rows) { const w = r => r.seats; return { gmvM: NX.sum(rows, r => r.gmvM), seats: NX.sum(rows, r => r.seats), occ: NX.wavg(rows, r => r.occ, w), liq: NX.wavg(rows, r => r.liq, w), lqs: NX.wavg(rows, r => r.lqs, w), redDeal: NX.wavg(rows, r => r.redDeal, w), busCancel: NX.wavg(rows, r => r.busCancel, w), rating: NX.wavg(rows, r => r.rating, w), ybAssigned: NX.wavg(rows, r => r.ybAssigned, w), operators: rows.length }; }
 function snapshot() {
@@ -1501,7 +1501,18 @@ const kraCap = () => +S.settings.kraCap || 200;
 function kraM(m) { S.kra = S.kra || {}; if (!S.kra[m]) S.kra[m] = { status: 'draft', items: [], mgrOverall: null }; return S.kra[m]; }
 function newKraItem(o) { return Object.assign({ id: Math.random().toString(36).slice(2), cat: '', sub: '', unit: '#', dir: 'higher', target: null, weight: null, source: 'manual', input: '', remarks: '', mgrAch: null }, o || {}); }
 function kraSrc() { const s = NX.kraSources(M, mineDS()); try { const R = revModel(); if (R.total) s.sl_srp = { id: 'sl_srp', label: 'SL + SRP ads revenue (MTD)', unit: '₹', value: R.total, note: R.src }; if (R.srp) s.srp = Object.assign({}, s.srp, { value: R.srp }); if (R.sl) s.sl = Object.assign({}, s.sl || { id: 'sl', label: 'SL campaign revenue (MTD)', unit: '₹' }, { value: R.sl }); if (R.next) s.next_booked = { id: 'next_booked', label: 'Booked for next month (SL + SRP)', unit: '₹', value: R.next }; } catch (e) { } return s; }
-function kraActual(it, src) { if (it.source && it.source !== 'manual') { const s = src[it.source]; return s ? s.value : null; } return NX.evalExpr(it.input, it.unit); }
+function kraActual(it, src) { if (it.source && it.source !== 'manual') { const s = src[it.source]; if (s) return s.value; } return NX.evalExpr(it.input, it.unit); }
+// which uploaded number feeds a KRA row, from its name
+function kraGuessSource(cat, sub) {
+  const c = String(cat || ''), t = c + ' ' + String(sub || '');
+  if (/^\s*gd\s*$/i.test(c) || /group deal/i.test(t)) return 'rider_gd';
+  if (/^\s*rt\s*$/i.test(c) || /return trip/i.test(t)) return 'rider_rt';
+  if (/red ?deal/i.test(c)) return 'rd10';
+  if (/revenue/i.test(t) && /sl/i.test(t) && /srp/i.test(t) && !/dec|next/i.test(c)) return 'sl_srp';
+  if (/bus cancel/i.test(t) && /cohort|shortlist/i.test(t)) return 'cohort_bc';
+  return null;
+}
+function kraAutoLink() { let ch = false; const cm = curMonth(); Object.entries(S.kra || {}).forEach(([m, K]) => { if (m !== cm || !K || K.status === 'final' || K.demo || K.linked) return; (K.items || []).forEach(it => { if (!it.source || it.source === 'manual') { const g = kraGuessSource(it.cat, it.sub); if (g) { it.source = g; ch = true; } } }); K.linked = true; ch = true; }); return ch; }
 function kraRowCalc(it, src) {
   if (it.final) return it.final;
   const a = kraActual(it, src);
@@ -1532,7 +1543,7 @@ function kraRow(it, i, src, locked) {
       <select data-f="dir" aria-label="Direction" ${dis}><option value="higher" ${it.dir !== 'lower' ? 'selected' : ''}>Higher is better</option><option value="lower" ${it.dir === 'lower' ? 'selected' : ''}>Lower is better</option></select></div>
     <div class="k-tg"><span class="lbl">Target${it.unit === '%' ? ' %' : it.unit === '₹' ? ' ₹' : ''}</span><input type="text" inputmode="decimal" data-f="target" value="${it.target ?? ''}" placeholder="${it.unit === '%' ? '1.8' : it.unit === '₹' ? '800000' : '25'}" aria-label="Target" ${dis}></div>
     <div class="k-w"><span class="lbl">Weight %</span><input type="text" inputmode="decimal" data-f="weight" value="${it.weight ?? ''}" placeholder="10" aria-label="Weight" ${dis}></div>
-    <div class="k-act"><span class="lbl">Actual</span><select data-f="source" aria-label="Actual source" ${dis}><option value="manual" ${it.source === 'manual' ? 'selected' : ''}>Type it in</option>${opts}${srcMissing ? `<option value="${esc(it.source)}" selected>${esc(it.source)} (no data)</option>` : ''}</select>
+    <div class="k-act"><span class="lbl">Actual</span><select data-f="source" aria-label="Actual source" ${dis}><option value="manual" ${it.source === 'manual' ? 'selected' : ''}>Type it in</option>${opts}${srcMissing ? `<option value="${esc(it.source)}" selected>${esc(({ rd10: 'Red Deal 10%+', rider_gd: 'Rider GD availability', rider_rt: 'Rider RT availability', sl_srp: 'SL + SRP revenue', cohort_bc: 'Cohort bus cancel' })[it.source] || it.source)} — upload pending, using typed value</option>` : ''}</select>
       <input type="text" data-f="input" value="${esc(it.input)}" placeholder="${it.unit === '%' ? 'e.g. 1.6 or 41/56' : it.unit === '₹' ? 'e.g. =410113+474058 or 4.5L' : 'e.g. 60'}" aria-label="Actual" ${it.source !== 'manual' ? 'hidden' : ''} ${dis}>
       <div class="k-auto" data-out="auto">${it.final ? `<span class="pill">Frozen</span> <span class="mono">${kv0(it.final.actual, it.unit)}</span>` : auto}</div></div>
     <div class="k-res"><span class="lbl">Achievement</span><b class="k-ach ${achC}" data-out="ach">${c.ach === null ? '–' : pct(c.ach, 1)}</b>
@@ -1622,7 +1633,8 @@ function importKra(rows, fileName) {
   if (S.kra && S.kra[m] && S.kra[m].status === 'final') return { ok: false, skip: true, label: 'KRA for ' + monLbl(m) + ' is already final — reopen it to re-import' };
   const K = kraM(m);
   K.items = rows.map(r => { const unit = NX.guessUnit(r.cat, r.sub, r.target), f = unit === '%' ? 100 : 1; return newKraItem({ cat: r.cat, sub: r.sub, unit, dir: NX.guessDir(r.cat, r.sub), target: r.target === null ? null : +(r.target * f).toFixed(6), weight: r.weight === null ? null : +(r.weight * 100).toFixed(4), input: r.ach === null ? '' : String(+(r.ach * f).toFixed(6)), remarks: r.remarks }); });
-  K.status = 'draft'; delete K.demo; kraMonth = m;
+  K.items.forEach(it => { const g = kraGuessSource(it.cat, it.sub); if (g) it.source = g; });
+  K.status = 'draft'; delete K.demo; K.linked = true; K.importedAt = Date.now(); K.file = fileName; kraMonth = m;
   return { ok: true, label: 'KRA scorecard · ' + monLbl(m) + ' (' + K.items.length + ' KRAs, draft)', rows: K.items.length };
 }
 
@@ -2764,7 +2776,7 @@ function vUpload() {
     <div id="results" class="acts">${lastResults.map(resRow).join('')}</div>
     ${uploadsCard()}
     <section class="card"><h2>Reports Nexora recognises</h2><div class="tbl-wrap"><table><thead><tr><th>Report</th><th>Area</th><th>Last upload</th><th class="n">Rows</th></tr></thead><tbody>
-      ${NX.TEMPLATES.filter(t => t.id !== 'ads_summary' && t.id !== 'kam_one' && t.id !== 'rd_emp' && t.id !== 'rd_bo' && t.id !== 'rider_focus').map(t => { const d = (byT[t.id] || []).sort((a, b) => b.at - a.at)[0]; return `<tr><td>${t.name}</td><td>${t.group}</td><td class="mono">${d ? new Date(d.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '<span class="muted">not yet</span>'}</td><td class="n">${d ? fmt((byT[t.id] || []).reduce((s, x) => s + x.rows.length, 0)) : '–'}</td></tr>`; }).join('')}
+      ${NX.TEMPLATES.filter(t => t.id !== 'ads_summary' && t.id !== 'kam_one' && t.id !== 'rd_emp' && t.id !== 'rd_bo' && t.id !== 'rider_focus' && !(t.id === 'rider' && !(byT.rider || []).length)).map(t => { let d = (byT[t.id] || []).sort((a, b) => b.at - a.at)[0]; if (t.id === 'kra_summary') { const ks = Object.values(S.kra || {}).filter(K => K && !K.demo && (K.items || []).length && K.importedAt).sort((a, b) => b.importedAt - a.importedAt)[0]; if (ks) { d = { at: ks.importedAt, rows: ks.items }; byT.kra_summary = [d]; } } const opt = /^(tam_sl|bc_cohort|rd_trend)$/.test(t.id); return `<tr><td>${t.name}</td><td>${t.group}</td><td class="mono">${d ? new Date(d.at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : `<span class="muted">${opt ? 'optional · sheet not in your KRA file' : 'not yet'}</span>`}</td><td class="n">${d ? fmt((byT[t.id] || []).reduce((s, x) => s + x.rows.length, 0)) : '–'}</td></tr>`; }).join('')}
     </tbody></table></div><p class="muted" style="margin:0;font-size:.8rem">Re-uploading the same report replaces the older copy. Files are read on this device; nothing is sent anywhere.</p></section>`;
 }
 function resRow(r) { return `<div class="res"${r.go ? (/^(ads|trackers|pulse|compare)$/.test(r.go) ? ` data-go="${r.go}" style="cursor:pointer"` : ` data-go="reports" data-arg="${esc(r.go)}" style="cursor:pointer"`) : ''}><span class="pill ${r.ok ? 'good' : r.skip ? '' : 'bad'}">${r.ok ? 'Loaded' : r.skip ? 'Skipped' : 'Error'}</span><span style="min-width:0"><b>${esc(r.label)}</b><div class="f">${esc(r.file)}${r.sheet ? ' · ' + esc(r.sheet) : ''}</div></span><span class="mono muted">${r.ok ? fmt(r.rows) + ' rows' : ''}</span></div>`; }
