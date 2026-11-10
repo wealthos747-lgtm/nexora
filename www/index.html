@@ -1432,6 +1432,7 @@ function vServices() {
   const byOp = [...groupBy(list, 'vid')].map(([v, a]) => ({ v, bo: a[0].bo, n: a.length, zero: a.filter(s => !s.seats).length, low: a.filter(s => s.liq !== null && s.liq < T.liqLow).length, liq: svcLiq(a), gmv: NX.sum(a, s => s.gmv), seats: NX.sum(a, s => s.seats), txn: NX.sum(a, s => s.txnDays || 0) })).sort((a, b) => b.n - a.n);
   
   return head('Services', { eyebrow: 'Inventory health', text: 'Service-level sales and liquidation, counted the same way as the BO Wise sheet: services active more than 15 days, liquidation = seats sold ÷ seats available.' }) +
+    (all.length && !hasDays ? `<section class="card" style="border-color:var(--amber)"><div class="card-h"><h2>Running days and txn days are missing</h2><button class="btn" data-go="upload">Upload the service file again</button></div><p class="muted" style="margin:0">This service data (${esc((S.datasets.find(d => d.t === 'service_rd') || {}).file || 'service file')}) was saved by an older version of Nexora that did not keep running days or txn days. Upload the same file once more on this device — it fills these columns, starts the monthly history in Trends and adds the route health check.</p></section>` : '') +
     `<div class="seg" role="group" aria-label="Running days" style="align-self:flex-start;flex-wrap:wrap">${BANDS.map(([k, l, f]) => `<button data-band="${k}" aria-pressed="${svcBand === k}">${l} <span class="muted mono">${fmt(all.filter(f).length)}</span></button>`).join('')}</div>
     ${bandRows.length ? `<section class="card"><div class="card-h"><h2>By running days</h2><span class="muted">running days = active days in the month · txn days = days with at least one sale</span></div><div class="tbl-wrap"><table><thead><tr><th>Running days</th><th class="n">Services</th><th class="n">Txn days</th><th class="n">Avg txn days</th><th class="n">Zero sales</th><th class="n">Seats</th><th class="n">GMV</th><th class="n">Liquidation</th></tr></thead><tbody>${bandRows.map(b => `<tr><td><b>${b.l}</b></td><td class="n">${fmt(b.n)}</td><td class="n">${fmt(b.txn)}</td><td class="n">${b.n ? (b.txn / b.n).toFixed(1) : '–'}</td><td class="n ${b.zero ? 'bad' : ''}">${b.zero}</td><td class="n">${fmt(b.seats)}</td><td class="n">${inr(b.gmv)}</td><td class="n ${cls(b.liq, T.liqLow, 40)}">${pct(b.liq)}</td></tr>`).join('')}<tr><td><b>Total</b></td><td class="n"><b>${fmt(all.length)}</b></td><td class="n"><b>${fmt(NX.sum(all, s => s.txnDays || 0))}</b></td><td class="n">${(NX.sum(all, s => s.txnDays || 0) / all.length).toFixed(1)}</td><td class="n">${all.filter(s => !s.seats).length}</td><td class="n"><b>${fmt(NX.sum(all, s => s.seats))}</b></td><td class="n"><b>${inr(NX.sum(all, s => s.gmv))}</b></td><td class="n"><b>${pct(svcLiq(all))}</b></td></tr></tbody></table></div></section>` : `<p class="muted" style="margin:0">Re-upload the service file to see running days and transaction days.</p>`}
     <div class="tiles"><div class="tile"><span class="eyebrow">Services</span><span class="v">${fmt(list.length)}</span><span class="s">${inr(NX.sum(list, s => s.gmv))} GMV · ${fmt(NX.sum(list, s => s.seats))} seats</span></div>
@@ -2363,6 +2364,17 @@ async function cloudInit() {
   } catch (e) { SY.state = 'error'; SY.err = e.message; }
   syncBadge();
 }
+// uploads from two devices are merged report by report (newest copy wins, deletions remembered) instead of one device overwriting the other
+function dsKey(d) { if (d.t === 'custom') return 'id:' + d.id; if (d.t === 'svc_hist') return 'svc_hist|' + d.m; const mo = (d.t === 'kam_bo' || d.t === 'route_market') && d.rows && d.rows[0] ? d.rows[0].month : ''; return d.t + '|' + (d.window || 'MTD') + '|' + mo; }
+function mergeDatasets(L, R) {
+  const gone = Object.assign({}, R.gone || {}); Object.entries(L.gone || {}).forEach(([k, v]) => { if (!gone[k] || gone[k] < v) gone[k] = v; });
+  const best = new Map(); const add = (d, side) => { if (d.demo) return; if ((gone[d.id] || 0) >= (d.at || 0)) return; const k = dsKey(d); const o = best.get(k); if (!o || (d.at || 0) > (o.d.at || 0)) best.set(k, { d, side }); };
+  (R.datasets || []).forEach(d => add(d, 'R')); (L.datasets || []).forEach(d => add(d, 'L'));
+  const datasets = [...best.values()].map(x => x.d); const rIds = new Set((R.datasets || []).map(d => d.id));
+  const changedForRemote = datasets.some(d => !rIds.has(d.id)) || datasets.length !== (R.datasets || []).length;
+  return { datasets, gone, changedForRemote };
+}
+function dropDS(pred) { const now = Date.now(); S.gone = S.gone || {}; S.datasets = S.datasets.filter(d => { if (pred(d)) { S.gone[d.id] = now; return false; } return true; }); }
 async function cloudPull(first) {
   if (!sb || !SY.user || SY.busy) return; SY.busy = true; SY.state = 'syncing'; syncBadge();
   try {
@@ -2373,11 +2385,13 @@ async function cloudPull(first) {
     }
     const remote = JSON.parse(await gunz(data));
     const localEmpty = !S.datasets.length && !S.log.length && !Object.keys(S.kra || {}).some(k => (S.kra[k].items || []).length);
+    const mg = S.demo || localEmpty ? null : mergeDatasets(S, remote);
     if (S.demo || localEmpty || (remote.savedAt || 0) > (S.savedAt || 0)) {
       if (remote.settings && remote.settings.theme) applyTheme(remote.settings.theme === 'system' ? null : remote.settings.theme);
-      S = Object.assign({}, S, remote); S.demo = false; rebuild(); await DB.set('state', S); SY.last = Date.now(); SY.state = 'synced';
+      S = Object.assign({}, S, remote); if (mg) { S.datasets = mg.datasets; S.gone = mg.gone; } S.demo = false; rebuild(); await DB.set('state', S); SY.last = Date.now(); SY.state = 'synced';
       if (!first) toast('Updated from your other device'); render();
-    } else if ((S.savedAt || 0) > (remote.savedAt || 0)) { SY.busy = false; await cloudPush(); return; }
+      if (mg && mg.changedForRemote) { SY.busy = false; S.savedAt = Date.now(); await DB.set('state', S); await cloudPush(); return; }
+    } else if ((S.savedAt || 0) > (remote.savedAt || 0)) { if (mg) { S.datasets = mg.datasets; S.gone = mg.gone; rebuild(); await DB.set('state', S); render(); } SY.busy = false; await cloudPush(); return; }
     else { SY.state = 'synced'; SY.last = Date.now(); }
   } catch (e) { SY.state = 'error'; SY.err = e.message || String(e); }
   SY.busy = false; syncBadge();
@@ -2726,7 +2740,7 @@ function rdOpCard(r) {
 function rdCleanup() {
   let changed = false;
   const before = S.datasets.length;
-  S.datasets = S.datasets.filter(d => !(d.t === 'custom' && ((d.cols || []).some(c => /red_deal_seats_10|^b2c_seats$/i.test(String(c && (c.h || c.name || c)))) || /red ?deal dashboard/i.test(String(d.name || d.file || '')))));
+  dropDS(d => (d.t === 'custom' && ((d.cols || []).some(c => /red_deal_seats_10|^b2c_seats$/i.test(String(c && (c.h || c.name || c)))) || /red ?deal dashboard/i.test(String(d.name || d.file || '')))));
   if (S.datasets.length !== before) changed = true;
   S.datasets.forEach(d => { if (d.t === 'custom' && d.rows && d.rows.length > 25000) { d.rows = d.rows.slice(0, 25000); d.trimmed = true; changed = true; } });
   return changed;
@@ -2897,8 +2911,8 @@ afterRender.trends = () => {
   document.querySelectorAll('[data-trt]').forEach(b => b.addEventListener('click', () => { trTab = b.dataset.trt; trMore = false; const y = window.scrollY; render(); window.scrollTo(0, y); }));
   document.querySelectorAll('[data-trmore]').forEach(b => b.addEventListener('click', () => { trMore = !trMore; const y = window.scrollY; render(); window.scrollTo(0, y); }));
   document.querySelectorAll('[data-trs]').forEach(b => b.addEventListener('click', () => { trScope = b.dataset.trs; const y = window.scrollY; render(); window.scrollTo(0, y); }));
-  document.querySelectorAll('[data-retag]').forEach(s => s.addEventListener('change', e => { const d = S.datasets.find(x => x.id === e.target.dataset.retag); if (!d) return; const m = e.target.value; S.datasets = S.datasets.filter(x => !(x.t === 'svc_hist' && x.m === m && x !== d)); d.m = m; d.id = 'svc_hist|' + m; save(); rebuild(); render(); toast('Moved to ' + monLbl(m)); }));
-  document.querySelectorAll('[data-histdel]').forEach(b => b.addEventListener('click', () => { S.datasets = S.datasets.filter(x => x.id !== b.dataset.histdel); save(); rebuild(); render(); }));
+  document.querySelectorAll('[data-retag]').forEach(s => s.addEventListener('change', e => { const d = S.datasets.find(x => x.id === e.target.dataset.retag); if (!d) return; const m = e.target.value; dropDS(x => x.t === 'svc_hist' && x.m === m && x !== d); d.m = m; d.id = 'svc_hist|' + m; d.at = Date.now(); save(); rebuild(); render(); toast('Moved to ' + monLbl(m)); }));
+  document.querySelectorAll('[data-histdel]').forEach(b => b.addEventListener('click', () => { dropDS(x => x.id === b.dataset.histdel); save(); rebuild(); render(); }));
   const el = $('#ch-tr'); if (!el || !window.echarts) return;
   const all = NX.svcTrend(S.datasets), n = trRange === 1 ? 2 : trRange, T = all.slice(-n);
   const f = NX.forecastNext(all.map(x => x.gmv)), fl = NX.forecastNext(all.map(x => x.liq));
@@ -3091,7 +3105,7 @@ function bindUploads() {
   const f = $('#up-fresh'); if (f) f.addEventListener('click', () => { startFresh(); toast('Demo data removed'); render(); });
   document.querySelectorAll('[data-up-del]').forEach(b => b.addEventListener('click', () => {
     if (!b.dataset.armed) { b.dataset.armed = 1; b.textContent = 'Tap again'; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.innerHTML = I.trash + 'Delete'; } }, 3000); return; }
-    const file = b.dataset.upDel; S.datasets = S.datasets.filter(d => (d.file || 'Unknown file') !== file); rebuild(); save(); toast('Deleted ' + file); render();
+    const file = b.dataset.upDel; dropDS(d => (d.file || 'Unknown file') === file); rebuild(); save(); toast('Deleted ' + file); render();
   }));
 }
 function startFresh() {
@@ -3134,7 +3148,7 @@ async function handleFiles(files) {
       const wb = XLSX.read(buf, { type: 'array', cellDates: true, raw: isCsv, dense: false });
       const sheets = wb.SheetNames.map(sn => { const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null }); return [sn, aoa, aoa.length ? NX.detect(aoa, sn) : null]; });
       const rawBook = sheets.some(x => x[2] && x[2].template && /^(rd_daily|rider_avl)$/.test(x[2].template.id));
-      if (sheets.some(x => x[2] && x[2].template)) S.datasets = S.datasets.filter(x => !(x.t === 'custom' && x.file === f.name));
+      if (sheets.some(x => x[2] && x[2].template)) dropDS(x => x.t === 'custom' && x.file === f.name);
       for (const [sn, aoa, d] of sheets) {
         if (!d) continue;
         if (!d.template && rawBook) { out.push({ ok: false, skip: true, label: 'Summary sheet — not needed, calculated from the raw data sheet', file: f.name, sheet: sn }); continue; }
@@ -3162,7 +3176,7 @@ async function handleFiles(files) {
   }
   if (fresh.length || kraImports.length) {
     if (S.demo) { S.datasets = []; S.log = S.log.filter(l => !l.demo); S.demo = false; }
-    for (const d of fresh) { if (d.t === 'custom') { S.datasets = S.datasets.filter(x => x.id !== d.id); S.datasets.push(d); continue; } const mo = x => x.t === 'svc_hist' ? x.m : (x.t === 'kam_bo' || x.t === 'route_market') && x.rows[0] ? x.rows[0].month : ''; S.datasets = S.datasets.filter(x => !(x.t === d.t && (x.window || 'MTD') === (d.window || 'MTD') && mo(x) === mo(d))); S.datasets.push(d); }
+    for (const d of fresh) { if (d.t === 'custom') { dropDS(x => x.id === d.id); S.datasets.push(d); continue; } const mo = x => x.t === 'svc_hist' ? x.m : (x.t === 'kam_bo' || x.t === 'route_market') && x.rows[0] ? x.rows[0].month : ''; S.datasets = S.datasets.filter(x => !(x.t === d.t && (x.window || 'MTD') === (d.window || 'MTD') && mo(x) === mo(d))); S.datasets.push(d); }
     rebuild(); save();
   }
   lastResults = out; render();
@@ -3198,7 +3212,7 @@ afterRender.settings = () => {
   $('#mask').addEventListener('click', () => { S.settings.mask = !S.settings.mask; save(); render(); });
   document.querySelectorAll('[data-t]').forEach(i => i.addEventListener('change', e => { const v = parseFloat(e.target.value); if (!isNaN(v)) { S.settings.T[e.target.dataset.t] = v; rebuild(); save(); toast('Threshold saved'); } }));
   $('#tdef').addEventListener('click', () => { S.settings.T = Object.assign({}, DEF_T); rebuild(); save(); render(); });
-  document.querySelectorAll('[data-rmds]').forEach(b => b.addEventListener('click', () => { S.datasets = S.datasets.filter(d => d.id !== b.dataset.rmds); rebuild(); save(); render(); }));
+  document.querySelectorAll('[data-rmds]').forEach(b => b.addEventListener('click', () => { dropDS(d => d.id === b.dataset.rmds); rebuild(); save(); render(); }));
   const r = $('#reset'); if (r) r.addEventListener('click', () => { confirmReset = true; render(); });
   const y = $('#resetyes'); if (y) y.addEventListener('click', () => { S.datasets = []; S.log = []; S.learned = {}; S.demo = false; confirmReset = false; rebuild(); save(); render(); toast('Cleared'); });
   const n = $('#resetno'); if (n) n.addEventListener('click', () => { confirmReset = false; render(); });
