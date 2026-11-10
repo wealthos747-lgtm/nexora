@@ -434,6 +434,10 @@ var NX = (function () {
     { id: 'ads_sl', name: 'Red Deal / SL campaigns', group: 'Revenue', req: ['campaign_id', 'bo_id', 'revenue', 'ROAS', 'BDE Name'] },
     { id: 'ads_srp', name: 'SRP ads', group: 'Revenue', req: ['adcampaignid', 'opid', 'cost', 'BDE Name'] },
     { id: 'ads_summary', name: 'Ads summary (targets)', group: 'Revenue', req: ['Target', 'MTD revenue', 'Ach %'] },
+    { id: 'rd_daily', name: 'Red Deal dashboard (10% and above)', group: 'Revenue', req: ['operatorid', 'b2c_seats', 'red_deal_seats_10', 'BDE Name'] },
+    { id: 'rd_targets', name: 'Red Deal targets by region', group: 'Revenue', req: ['RH Region', 'Target', 'Ach %'], not: ['BDE Name', 'MTD revenue'] },
+    { id: 'rd_emp', name: 'Red Deal employee summary', group: 'Revenue', req: ['BDE Name', 'Target', 'Ach %'], not: ['MTD revenue'] },
+    { id: 'rd_bo', name: 'Red Deal BO summary', group: 'Revenue', req: ['operatorid', 'BO Name', 'BDE Name', 'BDM Region', 'RH Region'], not: ['b2c_seats'] },
     { id: 'kra_summary', name: 'KRA working file (summary)', group: 'KRA', req: ['Category', 'Sub KRA', 'Target', 'Weigh', 'Ach'] },
     { id: 'rider', name: 'Rider route configuration (RT / GD)', group: 'KRA', req: ['BO Code', 'Route', 'RT trip configured', 'GD configured'] },
     { id: 'tam_sl', name: 'TAM pitch tracker (SL / SRP)', group: 'KRA', req: ['BO ID', 'Route', 'TAM', 'Pitched /not pirched'] },
@@ -461,6 +465,7 @@ var NX = (function () {
     const f = findHeader(aoa);
     const headers = (aoa[f.idx] || []).map(str);
     if (!f.t) return { template: null, headers, rows: [] };
+    if (f.t.id === 'rd_daily' || f.t.id === 'rd_targets') return { template: f.t, headers, rows: [], window: 'MTD', aoa, headerIdx: f.idx };
     const rows = [];
     for (let i = f.idx + 1; i < aoa.length; i++) {
       const r = aoa[i]; if (!r || r.every(c => c === null || c === undefined || str(c) === '')) continue;
@@ -613,7 +618,7 @@ var NX = (function () {
     const ops = new Map();
     const add = (vid, name) => { if (!vid) return; if (!ops.has(vid)) ops.set(vid, { vid, name: name || vid, keys: new Set() }); const o = ops.get(vid); if (name) { o.keys.add(nameKey(name)); if (o.name === vid) o.name = name; } };
     // prefer the cleanest display names first
-    const order = ['bo_wise', 'yb_bo', 'api_cancel', 'service_rd', 'service_sales', 'ads_sl', 'ads_srp', 'yb_service', 'rd_trend', 'bc_cohort', 'rider', 'tam_sl'];
+    const order = ['bo_wise', 'rd_month', 'yb_bo', 'api_cancel', 'service_rd', 'service_sales', 'ads_sl', 'ads_srp', 'yb_service', 'rd_trend', 'bc_cohort', 'rider', 'tam_sl'];
     for (const t of order) for (const d of datasets.filter(d => d.t === t)) for (const r of d.rows) add(r.vid, r.bo);
     return ops;
   }
@@ -696,6 +701,11 @@ var NX = (function () {
     // single-operator KAM file: match to an operator row by identical seats + GMV
     for (const r of get('kam_one')) { if (!kamNow.some(k => k.seats === r.seats && Math.abs((k.gmvM || 0) - (r.gmvM || 0)) < 1e-6)) kamNow.push(Object.assign({}, r, { bo: 'Single-operator file', vid: null })); }
 
+    // Red Deal 10%+ (monthly per operator, mine only after mineOnly)
+    const rdm = get('rd_month');
+    const rdMonths = [...new Set(rdm.map(r => r.m))].sort();
+    const rdM = rdMonths[rdMonths.length - 1] || null, rdP = rdMonths[rdMonths.length - 2] || null;
+    const rdTargets = get('rd_targets');
     const yb = get('yb_bo'), ybSvc = get('yb_service'), api = get('api_cancel'), rd = get('service_rd'), bw = get('bo_wise'), svc = get('service_sales'), rm = get('route_market');
     const sl = getWin('ads_sl', 'MTD'), slY = getWin('ads_sl', 'Yesterday'), sl7 = getWin('ads_sl', 'Last 7 Days'), slNext = getWin('ads_sl', 'MTD (next)');
     const srp = getWin('ads_srp', 'MTD'), srpNext = getWin('ads_srp', 'MTD (next)');
@@ -704,6 +714,7 @@ var NX = (function () {
     // per-operator rollup
     const rows = [];
     const ids = new Set([...ops.keys(), ...kamNow.map(r => r.vid).filter(Boolean)]);
+    const rdPct = (vid, m) => { const x = rdm.filter(r => r.vid === vid && r.m === m); const st = sum(x, r => r.seats); return st ? { pct: sum(x, r => r.rd10) / st * 100, seats: st, rd10: sum(x, r => r.rd10), gmv: sum(x, r => r.gmv) } : null; };
     for (const vid of ids) {
       const o = ops.get(vid) || { vid, name: vid };
       const k = kamNow.find(r => r.vid === vid) || null;
@@ -720,9 +731,10 @@ var NX = (function () {
         lowLiqServices: s.filter(x => x.liq !== null && x.liq < T.liqLow).length,
         slRevenue: sum(camp, x => x.revenue), slGmv: sum(camp, x => x.gmv), slCampaigns: camp.length, srpCost: sum(ads, x => x.cost), srpCount: ads.length,
         rdGmv: sum(s, x => x.gmv), rdSeats: sum(s, x => x.seats),
+        rd10: rdM ? rdPct(vid, rdM) : null, rd10Prev: rdP ? rdPct(vid, rdP) : null, rd10Months: rdMonths.map(m => [m, rdPct(vid, m)]),
       });
     }
-    rows.sort((p, q) => ((q.kam && q.kam.gmvM) || q.rdGmv / 1e6 || 0) - ((p.kam && p.kam.gmvM) || p.rdGmv / 1e6 || 0));
+    rows.sort((p, q) => ((q.kam && q.kam.gmvM) || q.rdGmv / 1e6 || (q.rd10 && q.rd10.seats / 1e6) || 0) - ((p.kam && p.kam.gmvM) || p.rdGmv / 1e6 || (p.rd10 && p.rd10.seats / 1e6) || 0));
 
     // portfolio KPIs
     const w = r => r.seats;
@@ -741,10 +753,17 @@ var NX = (function () {
       srpCost: sum(srp, r => r.cost), srpCount: srp.length, srpNext: sum(srpNext, r => r.cost), srpNextCount: srpNext.length,
     };
     kpi.roas = kpi.slRevenue ? kpi.slGmv / kpi.slRevenue : null;
+    const rdOf = m => { const x = rdm.filter(r => r.m === m); const st = sum(x, r => r.seats); return st ? { m, pct: sum(x, r => r.rd10) / st * 100, seats: st, rd10: sum(x, r => r.rd10), rdAll: sum(x, r => r.rdSeats), gmv: sum(x, r => r.gmv), disc: sum(x, r => r.disc), ops: new Set(x.map(r => r.vid)).size } : null; };
+    kpi.rdMonths = rdMonths.map(rdOf).filter(Boolean); kpi.rd10 = rdM ? rdOf(rdM) : null; kpi.rd10Prev = rdP ? rdOf(rdP) : null;
+    if (!kpi.month && rdM) kpi.month = rdM;
+    if (kpi.seats === null && kpi.rd10) kpi.seats = kpi.rd10.seats;
     kpi.adsRevenue = kpi.slRevenue + kpi.srpCost;
 
     // alerts (rule-based, free)
     const alerts = [];
+    const myBdm = (rdm.find(r => r.bdm) || {}).bdm, myRh = (rdm.find(r => r.rh) || {}).rh;
+    const tRow = rdTargets.find(t => t.level === 'bdm' && t.name === myBdm) || rdTargets.find(t => t.level === 'rh' && t.name === myRh);
+    const rdTargetPct = tRow ? tRow.target : (rdm.length ? T.rd10Min || 22 : null); kpi.rd10Target = rdTargetPct; kpi.rd10TargetFrom = tRow ? tRow.name : null;
     const A = (sev, vid, area, text) => alerts.push({ sev, vid, area, text });
     for (const r of rows) {
       const k = r.kam;
@@ -752,7 +771,9 @@ var NX = (function () {
       if (k && k.lqs !== null && k.lqs < T.lqsMin) A('mid', r.vid, 'Hygiene', `LQS ${k.lqs.toFixed(1)}% is below ${T.lqsMin}%`);
       if (k && k.busCancel !== null && k.busCancel > T.busCancelMax) A('high', r.vid, 'Hygiene', `Bus cancellation ${k.busCancel.toFixed(2)}% (limit ${T.busCancelMax}%)`);
       if (k && k.rating !== null && k.rating < T.ratingMin) A('mid', r.vid, 'Hygiene', `Rating ${k.rating.toFixed(2)} is below ${T.ratingMin}`);
-      if (k && k.redDeal !== null && k.redDeal < T.redDealMin) A('opp', r.vid, 'Revenue', `Red Deal share only ${k.redDeal.toFixed(1)}% — upsell opportunity`);
+      if (r.rd10 && r.rd10.seats >= 500 && rdTargetPct !== null && r.rd10.pct < rdTargetPct) A('opp', r.vid, 'Revenue', `Red Deal 10%+ at ${r.rd10.pct.toFixed(1)}% vs ${rdTargetPct}% target — ${Math.ceil(rdTargetPct / 100 * r.rd10.seats - r.rd10.rd10).toLocaleString('en-IN')} more RD seats to reach it`);
+      if (r.rd10 && r.rd10Prev && r.rd10Prev.seats >= 500 && r.rd10.pct < r.rd10Prev.pct - 5) A('mid', r.vid, 'Revenue', `Red Deal 10%+ dropped ${(r.rd10Prev.pct - r.rd10.pct).toFixed(1)} pts vs last month`);
+      if (!r.rd10 && k && k.redDeal !== null && k.redDeal < T.redDealMin) A('opp', r.vid, 'Revenue', `Red Deal share only ${k.redDeal.toFixed(1)}% — upsell opportunity`);
       if (r.api && r.api.apiCancelled > T.apiCancelMax) A('mid', r.vid, 'Hygiene', `${r.api.apiCancelled} API-cancelled txns · ${r.api.prior4.toFixed(0)}% done >4 hrs before departure`);
       if (r.zeroServices > 0) A('mid', r.vid, 'Services', `${r.zeroServices} active service${r.zeroServices > 1 ? 's' : ''} with zero sales`);
       if (r.slCampaigns && r.slGmv / (r.slRevenue || 1) < T.roasMin) A('opp', r.vid, 'Revenue', `Campaign ROAS ${(r.slGmv / (r.slRevenue || 1)).toFixed(1)}× is under ${T.roasMin}×`);
@@ -761,7 +782,7 @@ var NX = (function () {
     alerts.sort((a, b) => rank[a.sev] - rank[b.sev]);
 
     const weakServices = ybSvc.filter(s => s.txns >= 20 && s.notAssigned > T.notAssignedMax).sort((a, b) => b.notAssigned - a.notAssigned);
-    return { T, ops, rows, kpi, kamNow, months, alerts, yb, ybSvc, weakServices, api, rd, bw, svc, rm, sl, slY, sl7, slNext, srp, srpNext, resolve };
+    return { rdm, rdMonths, rdTargets, T, ops, rows, kpi, kamNow, months, alerts, yb, ybSvc, weakServices, api, rd, bw, svc, rm, sl, slY, sl7, slNext, srp, srpNext, resolve };
   }
 
   // ---------- Work-log classifier ----------
@@ -867,6 +888,7 @@ var NX = (function () {
     add('srp_next', 'SRP ads booked for next month', '₹', k.srpNext || null);
     add('kam_bc', 'Bus cancel % (KAM dashboard, all operators)', '%', k.busCancel);
     add('red_deal', 'Red Deal share % (KAM dashboard)', '%', k.redDeal);
+    if (k.rd10) add('rd10', 'Red Deal 10%+ share (' + k.rd10.m + ')', '%', k.rd10.pct, Math.round(k.rd10.rd10).toLocaleString('en-IN') + ' of ' + Math.round(k.rd10.seats).toLocaleString('en-IN') + ' seats');
     add('yb', 'YB assignment %', '%', k.ybAssigned);
     add('lqs', 'LQS score %', '%', k.lqs);
     const bc = L('bc_cohort'); if (bc && bc.rows.length) { const t2 = sum(bc.rows, r => r.txn2), c2 = sum(bc.rows, r => r.can2); add('cohort_bc', 'Bus cancel % — shortlisted cohort (' + bc.rows[0].p2 + ')', '%', t2 ? c2 / t2 * 100 : null, c2 + ' of ' + t2 + ' txns'); }
@@ -875,7 +897,55 @@ var NX = (function () {
     return src;
   }
 
-  return { meTest, mineOnly, myRegions, adsMetrics, leaderboard, hierarchy, normName, evalExpr, kraCalc, guessUnit, guessDir, kraSources, TEMPLATES, detect, normalise, nameKey, buildOperators, resolver, model, splitActivities, classify, learn, CATS, num, sum, wavg };
+  // ---------- Red Deal dashboard: aggregate ~4 lakh daily rows into small month and day tables ----------
+  const MON3 = { jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6, jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12 };
+  function monthKey(d, label) {
+    if (d instanceof Date) return d.getFullYear() + '-' + p2(d.getMonth() + 1);
+    const s0 = str(d); if (/^\d{4}-\d{2}/.test(s0)) return s0.slice(0, 7);
+    const m = str(label).toLowerCase().match(/([a-z]{3})[a-z]*[-\s']*(\d{2,4})/); if (m && MON3[m[1]]) return (m[2].length === 2 ? '20' + m[2] : m[2]) + '-' + p2(MON3[m[1]]);
+    return '';
+  }
+  function aggRD(aoa, hi) {
+    const H = (aoa[hi] || []).map(x => str(x).toLowerCase()); const c = n => H.indexOf(n.toLowerCase());
+    const I = { d: c('doi_date'), vid: c('operatorid'), seats: c('b2c_seats'), rds: c('red_deal_seats'), disc: c('total_discount'), gmv: c('red_deal_gmv'), rd10: c('red_deal_seats_10'), bo: c('BO Name'), bde: c('BDE Name'), rh: c('RH Region'), bdm: c('BDM Region'), mon: c('Month') };
+    const M = new Map(), D = new Map(); let n = 0, maxD = '';
+    for (let i = hi + 1; i < aoa.length; i++) {
+      const r = aoa[i]; if (!r) continue; const vid = str(r[I.vid]).replace(/\.0$/, ''); if (!vid) continue; n++;
+      let dd = r[I.d]; if (dd instanceof Date) dd = new Date(dd.getTime() + 432e5); const dk = dd instanceof Date ? str(dd) : str(dd).slice(0, 10); const m = (I.mon >= 0 && monthKey(null, r[I.mon])) || monthKey(dd); if (dk > maxD) maxD = dk;
+      const seats = num(r[I.seats]) || 0, rd10 = num(r[I.rd10]) || 0, rds = num(r[I.rds]) || 0, gmv = num(r[I.gmv]) || 0, disc = num(r[I.disc]) || 0;
+      const bde = str(r[I.bde]), bdm = str(r[I.bdm]), rh = str(r[I.rh]);
+      const k = m + '|' + vid; let o = M.get(k); if (!o) { o = { m, vid, bo: str(r[I.bo]), bde, bdm, rh, seats: 0, rd10: 0, rdSeats: 0, gmv: 0, disc: 0 }; M.set(k, o); }
+      o.seats += seats; o.rd10 += rd10; o.rdSeats += rds; o.gmv += gmv; o.disc += disc;
+      const k2 = dk + '|' + bde; let q = D.get(k2); if (!q) { q = { d: dk, m, bde, bdm, rh, seats: 0, rd10: 0 }; D.set(k2, q); }
+      q.seats += seats; q.rd10 += rd10;
+    }
+    return { month: [...M.values()], day: [...D.values()], rows: n, last: maxD };
+  }
+  function parseRdTargets(aoa) {
+    const out = []; let level = null;
+    for (const r of aoa) {
+      const a = str((r || [])[0]).toLowerCase(); if (a === 'rh region') { level = 'rh'; continue; } if (a === 'bdm region') { level = 'bdm'; continue; }
+      if (!level || !a) { if (!a) level = level; continue; }
+      const t = num(r[1]); if (t === null) continue; out.push({ level, name: str(r[0]), target: t <= 1 && !/%/.test(str(r[1])) ? t * 100 : t });
+    }
+    return out;
+  }
+  function rdMetrics(datasets, scope, names) {
+    const f = scopeFilter(scope, names); const d = datasets.filter(x => x.t === 'rd_month').sort((a, b) => (b.at || 0) - (a.at || 0))[0]; if (!d) return null;
+    const rows = d.rows.filter(f); const ms = [...new Set(d.rows.map(r => r.m))].sort();
+    const by = ms.map(m => { const x = rows.filter(r => r.m === m); const st = sum(x, r => r.seats); return { m, pct: st ? sum(x, r => r.rd10) / st * 100 : null, seats: st, rd10: sum(x, r => r.rd10) }; });
+    return { months: by, ops: new Set(rows.map(r => r.vid)).size, bdes: new Set(rows.map(r => normName(r.bde))).size, last: by[by.length - 1] || null };
+  }
+  function rdLeaderboard(datasets, parent, names, m) {
+    const pf = scopeFilter(parent, names), me = meTest(names); const d = datasets.filter(x => x.t === 'rd_month').sort((a, b) => (b.at || 0) - (a.at || 0))[0]; if (!d) return [];
+    const g = new Map(); d.rows.filter(r => r.m === m && pf(r)).forEach(r => { const k = r.bde || '(unmapped)'; const o = g.get(k) || { name: k, seats: 0, rd10: 0, mine: false }; o.seats += r.seats; o.rd10 += r.rd10; if (me(r)) o.mine = true; g.set(k, o); });
+    return [...g.values()].filter(o => o.seats > 0).map(o => Object.assign(o, { pct: o.rd10 / o.seats * 100 })).sort((a, b) => b.pct - a.pct);
+  }
+  // hierarchy for compare also from Red Deal rows
+  const _hier = hierarchy;
+  hierarchy = function (datasets) { const h = _hier(datasets); const add = (k, v) => { if (v && !h[k].includes(v)) h[k].push(v); }; for (const d of datasets) if (d.t === 'rd_month') for (const r of d.rows) { add('bde', r.bde); add('bdm', r.bdm); add('rh', r.rh); } h.bde.sort(); h.bdm.sort(); h.rh.sort(); return h; };
+
+  return { aggRD, parseRdTargets, rdMetrics, rdLeaderboard, monthKey, meTest, mineOnly, myRegions, adsMetrics, leaderboard, hierarchy, normName, evalExpr, kraCalc, guessUnit, guessDir, kraSources, TEMPLATES, detect, normalise, nameKey, buildOperators, resolver, model, splitActivities, classify, learn, CATS, num, sum, wavg };
 })();
 
 
@@ -985,7 +1055,7 @@ const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).
 
 const myNames = () => String(S.settings.names || S.settings.owner || '').split(',').map(x => x.trim()).filter(Boolean);
 const mineDS = () => NX.mineOnly(S.datasets, myNames());
-function rebuild() { M = NX.model(S.datasets, S.settings.T, myNames()); maskIdx = new Map(); M.rows.forEach(r => opName(r.vid)); snapshot(); }
+function rebuild() { if (rdCleanup()) setTimeout(save, 0); M = NX.model(S.datasets, S.settings.T, myNames()); maskIdx = new Map(); M.rows.forEach(r => opName(r.vid)); snapshot(); }
 // monthly snapshot of my portfolio, kept for the appraisal story
 function kamMonthKpi(rows) { const w = r => r.seats; return { gmvM: NX.sum(rows, r => r.gmvM), seats: NX.sum(rows, r => r.seats), occ: NX.wavg(rows, r => r.occ, w), liq: NX.wavg(rows, r => r.liq, w), lqs: NX.wavg(rows, r => r.lqs, w), redDeal: NX.wavg(rows, r => r.redDeal, w), busCancel: NX.wavg(rows, r => r.busCancel, w), rating: NX.wavg(rows, r => r.rating, w), ybAssigned: NX.wavg(rows, r => r.ybAssigned, w), operators: rows.length }; }
 function snapshot() {
@@ -993,6 +1063,7 @@ function snapshot() {
   const kam = S.datasets.filter(d => d.t === 'kam_bo');
   const byM = {}; kam.forEach(d => d.rows.forEach(r => { (byM[r.month] = byM[r.month] || new Map()).set(r.bo, r); }));
   for (const [m, mp] of Object.entries(byM)) if (m) S.snap[m] = Object.assign(S.snap[m] || {}, kamMonthKpi([...mp.values()]));
+  (M.kpi.rdMonths || []).forEach(x => { S.snap[x.m] = Object.assign(S.snap[x.m] || {}, { rd10: x.pct }); });
   const k = M.kpi;
   if (S.datasets.some(d => d.t === 'ads_sl' || d.t === 'yb_bo')) { const cm = curMonth(); const R = revModel(); S.snap[cm] = Object.assign(S.snap[cm] || {}, { slRevenue: R.sl, srpCost: R.srp, adsRevenue: R.total, bookedNext: R.next, roas: k.roas, ybTxns: k.ybTxns, apiCancelled: k.apiCancelled, services: k.services }); }
 }
@@ -1063,12 +1134,12 @@ function opCols() {
   return [
     ['name', 'Operator', r => opName(r.vid), r => `<span class="nm">${esc(opName(r.vid))}</span>${S.settings.mask ? '' : `<span class="code">${esc(r.vid)}</span>`}`, ''],
     ['gmv', 'GMV ₹M', r => r.kam ? r.kam.gmvM : r.rdGmv / 1e6, r => fmt(r.kam ? r.kam.gmvM : (r.rdGmv ? r.rdGmv / 1e6 : null), 2), 'n'],
-    ['seats', 'Seats', r => r.kam ? r.kam.seats : r.rdSeats, r => fmt(r.kam ? r.kam.seats : r.rdSeats || null), 'n'],
+    ['seats', 'Seats', r => r.kam ? r.kam.seats : r.rdSeats || (r.rd10 && r.rd10.seats), r => fmt(r.kam ? r.kam.seats : r.rdSeats || (r.rd10 && r.rd10.seats) || null), 'n'],
     ['occ', 'Occ %', r => r.kam && r.kam.occ, r => pct(r.kam && r.kam.occ), 'n', r => cls(r.kam && r.kam.occ, 65, 80)],
     ['liq', 'Liq %', r => (r.kam && r.kam.liq) || (r.bw && r.bw.liq), r => pct((r.kam && r.kam.liq) || (r.bw && r.bw.liq)), 'n'],
     ['lqs', 'LQS %', r => r.kam && r.kam.lqs, r => pct(r.kam && r.kam.lqs), 'n', r => cls(r.kam && r.kam.lqs, T.lqsMin, 70)],
     ['rating', 'Rating', r => r.kam && r.kam.rating, r => r.kam && r.kam.rating ? r.kam.rating.toFixed(2) : '–', 'n', r => cls(r.kam && r.kam.rating, T.ratingMin, 4.1)],
-    ['rd', 'Red Deal %', r => r.kam && r.kam.redDeal, r => pct(r.kam && r.kam.redDeal), 'n', r => cls(r.kam && r.kam.redDeal, T.redDealMin, 35)],
+    ['rd', 'Red Deal %', r => r.kam && r.kam.redDeal !== null && r.kam.redDeal !== undefined ? r.kam.redDeal : r.rd10 && r.rd10.pct, r => r.kam && r.kam.redDeal !== null && r.kam.redDeal !== undefined ? pct(r.kam.redDeal) : pct(r.rd10 && r.rd10.pct), 'n', r => r.kam && r.kam.redDeal !== null && r.kam.redDeal !== undefined ? cls(r.kam.redDeal, T.redDealMin, 35) : (r.rd10 ? cls(r.rd10.pct, M.kpi.rd10Target || 22, 30) : '')],
     ['bc', 'Bus cancel %', r => r.kam && r.kam.busCancel, r => pct(r.kam && r.kam.busCancel, 2), 'n', r => cls(r.kam && r.kam.busCancel, 2, T.busCancelMax, false)],
     ['yb', 'YB %', r => r.yb && r.yb.assigned, r => pct(r.yb && r.yb.assigned), 'n', r => cls(r.yb && r.yb.assigned, T.ybMin - 5, T.ybMin)],
     ['api', 'API cancels', r => r.api && r.api.apiCancelled, r => fmt(r.api && r.api.apiCancelled), 'n', r => r.api && r.api.apiCancelled > T.apiCancelMax ? 'warn' : ''],
@@ -1115,6 +1186,7 @@ function vOp() {
       ${kv('Bus cancel %', pct(k.busCancel, 2), cls(k.busCancel, 2, T.busCancelMax, false))}${kv('BC prior to 2 hrs', pct(k.bcPrior2))}${kv('Post DOJ', pct(k.postDoj))}${kv('YB assigned', pct(k.ybAssigned), cls(k.ybAssigned, T.ybMin - 5, T.ybMin))}
       ${kv('BP on time', pct(k.bpOntime))}${kv('DP on time', pct(k.dpOntime))}${kv('Vehicle images', pct(k.vehicleImage))}${kv('Rest stop config', pct(k.restStop))}${kv('LQS', pct(k.lqs), cls(k.lqs, T.lqsMin, 70))}
     </div></section>` : '') +
+    rdOpCard(r) +
     `<div class="grid2">
       <section class="card"><h2>Hygiene</h2>
         ${r.yb ? `<div class="kv">${kv('YB assignment', pct(r.yb.assigned), cls(r.yb.assigned, T.ybMin - 5, T.ybMin))}${kv('Not assigned', pct(r.yb.notAssigned))}${kv('Not working', pct(r.yb.notWorking))}${kv('No GPS', pct(r.yb.noGps))}${kv('Wrong assigned', pct(r.yb.wrong))}${kv('Driver assigned', pct(r.yb.driver))}</div>` : '<div class="empty">No YB tracking data yet.</div>'}
@@ -1200,8 +1272,8 @@ afterRender.routes = () => $('#rtop').addEventListener('change', e => { rtOp = e
 function vAds() {
   const k = M.kpi, T = S.settings.T;
   const byOp = M.rows.filter(r => r.slCampaigns || r.srpCount).sort((a, b) => (b.slRevenue + b.srpCost) - (a.slRevenue + a.srpCost));
-  return head('Red Deal & Ads', { eyebrow: 'Revenue products · ' + esc(S.settings.owner) + "'s campaigns", text: 'Sponsored listing (SL) campaigns and SRP ads, filtered to your name from the all-India campaign file.' }) +
-    `<div class="tiles">
+  return head('Red Deal & Ads', { eyebrow: 'Revenue products · ' + esc(S.settings.owner) + "'s operators", text: 'Red Deal 10%+ share, sponsored listing (SL) campaigns and SRP ads — your rows only.' }) + rdSection() +
+    (hasRD() && !k.slCampaigns && !k.srpCount ? '' : `<div class="tiles">
       <div class="tile"><span class="eyebrow">SL revenue MTD</span><span class="v">${inr(k.slRevenue)}</span><span class="s">${k.slCampaigns} campaigns · ${k.slBOs} operators</span></div>
       <div class="tile"><span class="eyebrow">Last 7 days</span><span class="v">${inr(k.slRevenue7)}</span><span class="s">Yesterday ${inr(k.slRevenueY)}</span></div>
       <div class="tile ${cls(k.roas, T.roasMin, 6)}"><span class="eyebrow">ROAS</span><span class="v">${k.roas ? k.roas.toFixed(1) : '–'}<small>×</small></span><span class="s">GMV ${inr(k.slGmv)} ÷ revenue</span></div>
@@ -1213,8 +1285,9 @@ function vAds() {
     </section>
     <section class="card"><div class="card-h"><h2>SL campaigns</h2><span class="muted">highest revenue first</span></div>
       ${M.sl.length ? `<div class="tbl-wrap"><table><thead><tr><th>Operator</th><th>Route</th><th>Status</th><th>DOJ end</th><th class="n">Clicks / quota</th><th class="n">CPC</th><th class="n">Revenue</th><th class="n">ROAS</th></tr></thead><tbody>${[...M.sl].sort((a, b) => b.revenue - a.revenue).slice(0, 120).map(c => `<tr class="click" data-op="${esc(c.vid)}"><td>${esc(opName(c.vid, c.bo))}</td><td>${esc(c.src && c.dst ? c.src + ' → ' + c.dst : c.route)}</td><td>${statusPill(c.status)}</td><td class="mono">${esc(c.end)}</td><td class="n">${fmt(c.clicks)} / ${fmt(c.quota)}</td><td class="n">${fmt(c.cpc)}</td><td class="n">${inr(c.revenue)}</td><td class="n ${cls(c.roas, T.roasMin, 6)}">${c.roas ? c.roas.toFixed(1) + '×' : '–'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No campaigns yet.</div>'}
-    </section>`;
+    </section>`);
 }
+afterRender.ads = () => { rdChart(); };
 
 // ---------- WORK LOG ----------
 let logPeriod = 'week', draft = [];
@@ -1323,7 +1396,7 @@ afterRender.mail = () => {
   $('#savewk').addEventListener('click', () => { const wk = logRange('week'); S.weekly = S.weekly || {}; S.weekly[weekKey()] = { text: $('#mailbox').value, at: Date.now(), acts: wk.length, cats: Object.fromEntries(NX.CATS.map(c => [c, wk.filter(l => l.cat === c).length])) }; save(); toast('Saved week of ' + weekKey() + ' · ' + Object.keys(S.weekly).length + ' weeks on record'); }); $('#cpmail').addEventListener('click', e => copyText($('#mailbox').value, e.currentTarget)); $('#regen').addEventListener('click', () => { $('#mailbox').value = mailText(); toast('Rebuilt from latest data'); }); };
 
 // ---------- FORMULA LAB ----------
-const DS_LABEL = { rider: 'Rider RT / GD', tam_sl: 'TAM pitch tracker', bc_cohort: 'Bus-cancel cohort', rd_trend: 'Red Deal trend', kam_bo: 'KAM dashboard', route_market: 'Route market share', yb_bo: 'YB operator-wise', yb_service: 'YB service-wise', service_sales: 'Service sales', api_cancel: 'API cancellations', service_rd: 'Service information', bo_wise: 'Operators (services)', ads_sl: 'SL campaigns', ads_srp: 'SRP ads', kam_one: 'KAM single operator' };
+const DS_LABEL = { rd_month: 'Red Deal 10%+ (monthly)', rd_day: 'Red Deal 10%+ (daily)', rd_targets: 'Red Deal targets', rider: 'Rider RT / GD', tam_sl: 'TAM pitch tracker', bc_cohort: 'Bus-cancel cohort', rd_trend: 'Red Deal trend', kam_bo: 'KAM dashboard', route_market: 'Route market share', yb_bo: 'YB operator-wise', yb_service: 'YB service-wise', service_sales: 'Service sales', api_cancel: 'API cancellations', service_rd: 'Service information', bo_wise: 'Operators (services)', ads_sl: 'SL campaigns', ads_srp: 'SRP ads', kam_one: 'KAM single operator' };
 let fxDs = null, fxHF = null, fxLoaded = false;
 function fxSets() { const seen = new Map(); [...mineDS()].sort((a, b) => b.at - a.at).forEach(d => { const key = d.t === 'custom' ? d.id : d.t + '|' + (d.window || 'MTD'); if (!seen.has(key) && d.rows.length) seen.set(key, d); }); return [...seen.values()]; }
 const colL = i => { let s = ''; i++; while (i > 0) { const m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; };
@@ -1601,10 +1674,11 @@ function vCompare() {
   const parent = cmpB.level === 'me' || cmpB.level === 'bde' ? (reg.bdm ? { level: 'bdm', value: reg.bdm } : { level: 'all' }) : cmpB;
   const lb = NX.leaderboard(S.datasets, 'bde', parent, names);
   const myRank = lb.findIndex(o => o.mine) + 1;
-  return head('Compare', { eyebrow: 'Revenue products · MTD', text: 'Pick any two: you, another BDE, a BDM region, an RH region or Pan India. Uses the all-India campaign file.' }) +
+  return head('Compare', { eyebrow: 'Me vs region', text: 'Pick any two: you, another BDE, a BDM region, an RH region or Pan India. Uses the all-India Red Deal and campaign files.' }) +
     `<div class="chips">${quick.map((q, i) => `<button class="chip" data-quick="${i}">${esc(q[0])}</button>`).join('')}</div>
     <section class="card"><div class="vs">${scopePicker('ca', cmpA, H)}<div class="mid">vs</div>${scopePicker('cb', cmpB, H)}</div></section>
-    <div class="grid2">
+    ${hasRD() ? `<div class="grid2">${rdCompareCard(cmpA, cmpB)}${rdLbCard(parent)}</div>` : ''}
+    ${!S.datasets.some(d => /^ads_/.test(d.t)) ? '' : `<div class="grid2">
       <section class="card"><div class="card-h"><h2>${esc(scopeLabel(cmpA))} vs ${esc(scopeLabel(cmpB))}</h2></div>
         <div class="tbl-wrap"><table><thead><tr><th>Metric</th><th class="n">${esc(scopeLabel(cmpA))}</th><th class="n">${esc(scopeLabel(cmpB))}</th><th class="n">Difference</th></tr></thead><tbody>
         ${rows.map(([l, k, u, t]) => { const a = A[k], b = B[k]; let d = '–', c = ''; if (a !== null && b !== null && !isNaN(a) && !isNaN(b) && b) { if (t === 't') { d = pct(a / b * 100) + ' of B'; } else { const x = (a - b) / Math.abs(b) * 100; d = (x >= 0 ? '+' : '') + x.toFixed(1) + '%'; c = (k === 'cpc' ? -x : x) >= 0 ? 'good' : 'bad'; } } return `<tr><td>${l}</td><td class="n">${f(a, u)}</td><td class="n">${f(b, u)}</td><td class="n ${c}">${d}</td></tr>`; }).join('')}
@@ -1612,7 +1686,7 @@ function vCompare() {
         <p class="muted" style="margin:0;font-size:.8rem">Totals show A as a share of B. Ratios show how far A is above or below B. KAM, YB and service reports hold only your operators, so they are not part of this comparison.</p></section>
       <section class="card"><div class="card-h"><h2>Where you stand</h2><span class="pill ${myRank && myRank <= Math.ceil(lb.length / 2) ? 'good' : 'warn'}">${myRank ? `#${myRank} of ${lb.length} in ${esc(scopeLabel(parent))}` : 'Not in this group'}</span></div>
         <div class="chart" id="ch-lb"></div></section>
-    </div>`;
+    </div>`}`;
 }
 afterRender.compare = () => {
   const H = NX.hierarchy(S.datasets);
@@ -1625,8 +1699,9 @@ afterRender.compare = () => {
   const reg = NX.myRegions(S.datasets, myNames());
   const quick = [[{ level: 'me' }, { level: 'bdm', value: reg.bdm }], [{ level: 'me' }, { level: 'rh', value: reg.rh }], [{ level: 'me' }, { level: 'all' }], [{ level: 'bdm', value: 'TN (North)' }, { level: 'bdm', value: 'TN (South)' }]].filter(q => (q[1].level === 'all' || q[1].value) && (q[0].level === 'me' || H.bdm.includes(q[0].value)));
   document.querySelectorAll('[data-quick]').forEach(b => b.addEventListener('click', () => { const q = quick[+b.dataset.quick]; cmpA = q[0]; cmpB = q[1]; render(); }));
-  const el = $('#ch-lb'); if (!el || !window.echarts) return;
   const parent = cmpB.level === 'me' || cmpB.level === 'bde' ? (reg.bdm ? { level: 'bdm', value: reg.bdm } : { level: 'all' }) : cmpB;
+  rdLbChart(parent);
+  const el = $('#ch-lb'); if (!el || !window.echarts) return;
   let lb = NX.leaderboard(S.datasets, 'bde', parent, myNames());
   const mine = lb.find(o => o.mine); lb = lb.slice(0, 14); if (mine && !lb.includes(mine)) lb.push(mine);
   lb = lb.reverse();
@@ -1643,7 +1718,7 @@ afterRender.compare = () => {
 function monthsBetween(f, t) { const out = []; let m = f; for (let i = 0; i < 36 && m <= t; i++) { out.push(m); m = shiftMonth(m, 1); } return out; }
 function apRange() { const y = new Date().getFullYear(); const a = S.appraisal || {}; return { from: a.from || y + '-01', to: a.to || curMonth() }; }
 const WIN_RX = /\b(closed|signed|onboarded|launched|activated|went live|is live|renewed|achieved|won|converted|added \d+|increased|improved|reduced)\b/i;
-const GROWTH = [['gmvM', 'GMV (₹ M)', 'n2', 1], ['seats', 'Seats sold', 'n0', 1], ['occ', 'Occupancy %', 'p', 1], ['liq', 'Liquidation %', 'p', 1], ['lqs', 'LQS score %', 'p', 1], ['redDeal', 'Red Deal share %', 'p', 1], ['rating', 'Rating', 'n2', 1], ['ybAssigned', 'YB assignment %', 'p', 1], ['busCancel', 'Bus cancellation %', 'p2', -1], ['adsRevenue', 'Ads revenue (₹)', 'inr', 1], ['roas', 'ROAS', 'x', 1], ['services', 'Active services', 'n0', 1]];
+const GROWTH = [['gmvM', 'GMV (₹ M)', 'n2', 1], ['seats', 'Seats sold', 'n0', 1], ['occ', 'Occupancy %', 'p', 1], ['liq', 'Liquidation %', 'p', 1], ['lqs', 'LQS score %', 'p', 1], ['redDeal', 'Red Deal share %', 'p', 1], ['rd10', 'Red Deal 10%+ share %', 'p', 1], ['rating', 'Rating', 'n2', 1], ['ybAssigned', 'YB assignment %', 'p', 1], ['busCancel', 'Bus cancellation %', 'p2', -1], ['adsRevenue', 'Ads revenue (₹)', 'inr', 1], ['roas', 'ROAS', 'x', 1], ['services', 'Active services', 'n0', 1]];
 const gfmt = (v, t) => v === null || v === undefined || isNaN(v) ? '–' : t === 'p' ? pct(v) : t === 'p2' ? pct(v, 2) : t === 'inr' ? inr(v) : t === 'x' ? v.toFixed(2) + '×' : fmt(v, t === 'n2' ? 2 : 0);
 function apData() {
   const { from, to } = apRange(), ms = monthsBetween(from, to), src = kraSrc();
@@ -1884,6 +1959,7 @@ function deltaLine(series, higherBetter = true, fmtFn) {
   const ch = (b - a) / Math.abs(a) * 100, good = ch * (higherBetter ? 1 : -1) >= 0;
   return `<span class="delta ${good ? 'up' : 'down'}">${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(1)}%</span> <span class="muted">vs ${monLbl(series[series.length - 2][0]).slice(0, 3)}</span>`;
 }
+function ptsLine(s) { if (s.length < 2) return ''; const a = s[s.length - 2][1], b = s[s.length - 1][1], ch = b - a; return `<span class="delta ${ch >= 0 ? 'up' : 'down'}">${ch >= 0 ? '▲' : '▼'} ${Math.abs(ch).toFixed(2)} pts</span> <span class="muted">vs ${monLbl(s[s.length - 2][0]).slice(0, 3)}</span>`; }
 function healthScore(k) {
   const parts = [k.lqs, k.occ, k.ybAssigned, k.busCancel === null ? null : Math.max(0, 100 - k.busCancel * 20), k.redDeal === null ? null : Math.min(100, k.redDeal / 40 * 100)].filter(v => v !== null && v !== undefined && !isNaN(v));
   return parts.length ? parts.reduce((s, v) => s + v, 0) / parts.length : null;
@@ -1899,14 +1975,22 @@ function vPulse() {
     { t: 'LQS score', v: pctH(k.lqs), s: snapSeries('lqs'), hb: true, sub: `Rating ${k.rating ? k.rating.toFixed(2) : '–'} · Occ ${pct(k.occ)}`, c: '--good', go: 'operators' },
     { t: 'YB assigned', v: pctH(k.ybAssigned), s: snapSeries('ybAssigned'), hb: true, sub: `${fmt(k.ybTxns)} tracked txns`, c: '--violet', go: 'services' },
   ];
+  if (k.rd10) { const rs = k.rdMonths.map(x => [x.m, x.pct]), tg = k.rd10Target; kp.unshift({ t: 'Red Deal 10%+', v: pctH(k.rd10.pct, 2), s: rs, hb: true, sub: `Target ${tg !== null ? tg + '%' : '–'} · ${fmt(k.rd10.rd10)} of ${fmt(k.rd10.seats)} seats`, c: '--good', go: 'ads', pts: true }); const empty = x => x.v === '–' || (x.t === 'Ads revenue MTD' && !k.adsRevenue) || (x.t === 'YB assigned' && !k.ybAssigned) || (x.t === 'LQS score' && !k.lqs);
+    const need = rdNeed(k.rd10, tg), reg = NX.myRegions(S.datasets, myNames()), lb = reg.bdm ? NX.rdLeaderboard(S.datasets, { level: 'bdm', value: reg.bdm }, myNames(), k.rd10.m) : [], rk = lb.findIndex(o => o.mine) + 1;
+    const bm = reg.bdm ? NX.rdMetrics(S.datasets, { level: 'bdm', value: reg.bdm }, myNames()) : null;
+    const extra = [{ t: 'Seats to hit target', v: need ? fmt(need) : '✓', s: [], sub: need ? `more RD 10%+ seats in ${monLbl(k.rd10.m).slice(0, 3)} to reach ${tg}%` : 'Target reached this month', c: '--amber', go: 'ads' },
+      rk ? { t: 'Rank in ' + reg.bdm, v: `#${rk}<small> of ${lb.length}</small>`, s: [], sub: `Top: ${lb[0].name} ${lb[0].pct.toFixed(1)}%`, c: '--violet', go: 'compare' } : null,
+      bm ? { t: reg.bdm + ' Red Deal', v: pctH(bm.last.pct, 2), s: bm.months.map(x => [x.m, x.pct]), hb: true, sub: `You are ${(k.rd10.pct - bm.last.pct >= 0 ? '+' : '') + (k.rd10.pct - bm.last.pct).toFixed(2)} pts vs region`, c: '--accent', go: 'compare', pts: true } : null].filter(Boolean);
+    for (let i = 1; i < kp.length && extra.length; i++) if (empty(kp[i])) kp[i] = extra.shift();
+    kp.splice(4); }
   const hs = healthScore(k);
   const gs = snapSeries('gmvM'); const gTrend = gs.length >= 2 ? (gs[gs.length - 1][1] >= gs[gs.length - 2][1] ? ['Growing', 'good'] : ['Slowing', 'bad']) : ['First month', ''];
   const highN = M.alerts.filter(a => a.sev === 'high').length, oppN = M.alerts.filter(a => a.sev === 'opp').length;
   const risk = highN >= 5 ? ['High', 'bad'] : highN >= 2 ? ['Medium', 'warn'] : ['Low', 'good'];
-  const mkt = k.redDeal === null ? ['–', ''] : k.redDeal >= 35 ? ['Leading', 'good'] : k.redDeal >= T.redDealMin ? ['Optimizing', 'warn'] : ['Behind', 'bad'];
+  const mkt = k.redDeal === null && k.rd10 ? (k.rd10.pct >= (k.rd10Target || 22) ? ['On target', 'good'] : ['Below target', 'warn']) : k.redDeal === null ? ['–', ''] : k.redDeal >= 35 ? ['Leading', 'good'] : k.redDeal >= T.redDealMin ? ['Optimizing', 'warn'] : ['Behind', 'bad'];
   const lever = M.alerts.slice(0, 2).map(a => `${opName(a.vid)}: ${a.text.split(' · ')[0]}`).join(' · ');
   // data streams = what has been fed in
-  const LBL = { kam_bo: ['KAM dashboard', 'ops'], ads_sl: ['SL campaigns', 'ads'], ads_srp: ['SRP ads', 'ads'], service_rd: ['Service info', 'svc'], yb_bo: ['YB tracking', 'pulse'], yb_service: ['YB services', 'pulse'], route_market: ['Route market', 'route'], api_cancel: ['API cancels', 'trk'], service_sales: ['Service sales', 'svc'], bo_wise: ['Operator services', 'ops'], rider: ['Rider RT/GD', 'kra'], tam_sl: ['TAM pitch', 'kra'], bc_cohort: ['BC cohort', 'trk'], rd_trend: ['Red Deal trend', 'ads'] };
+  const LBL = { kam_bo: ['KAM dashboard', 'ops'], ads_sl: ['SL campaigns', 'ads'], ads_srp: ['SRP ads', 'ads'], service_rd: ['Service info', 'svc'], yb_bo: ['YB tracking', 'pulse'], yb_service: ['YB services', 'pulse'], route_market: ['Route market', 'route'], api_cancel: ['API cancels', 'trk'], service_sales: ['Service sales', 'svc'], bo_wise: ['Operator services', 'ops'], rider: ['Rider RT/GD', 'kra'], tam_sl: ['TAM pitch', 'kra'], bc_cohort: ['BC cohort', 'trk'], rd_trend: ['Red Deal trend', 'ads'], rd_month: ['Red Deal 10%+', 'ads'], rd_day: ['Red Deal daily', 'ads'] };
   const byT = {}; S.datasets.forEach(d => { if (!LBL[d.t]) return; byT[d.t] = (byT[d.t] || 0) + d.rows.length; });
   const streams = Object.entries(byT).sort((a, b) => b[1] - a[1]).slice(0, 5);
   const totalRows = Object.values(byT).reduce((s, v) => s + v, 0);
@@ -1926,7 +2010,7 @@ function vPulse() {
   return `<div class="cc-head"><div><div class="eyebrow">${monthLbl} · ${k.operators} operators · ${esc(S.settings.owner)}</div><h1 class="cc-title">KAM Command Center</h1><div class="sub">Real-time account intelligence from your reports, KRAs and daily work.</div></div>
       <div class="actions"><button class="btn" data-go="log">${I.log}Log today</button><button class="btn primary" data-go="upload">${I.up}Upload</button></div></div>
     <div class="cc-grid">
-      ${kp.map((x, i) => `<button class="cc-kpi" data-go="${x.go}"><span class="ttl">${x.t}</span><span class="v">${x.v}</span><span class="dl">${deltaLine(x.s, x.hb) || `<span class="muted">${x.sub}</span>`}</span>${x.s.length >= 2 ? `<span class="muted k-sub">${x.sub}</span>` : ''}${sparkSvg(x.s.map(p => p[1]), cv(x.c), i) || `<span class="sp-empty" style="--c:var(${x.c})"></span>`}</button>`).join('')}
+      ${kp.map((x, i) => `<button class="cc-kpi" data-go="${x.go}"><span class="ttl">${x.t}</span><span class="v">${x.v}</span><span class="dl">${(x.pts ? ptsLine(x.s) : deltaLine(x.s, x.hb)) || `<span class="muted">${x.sub}</span>`}</span>${x.s.length >= 2 ? `<span class="muted k-sub">${x.sub}</span>` : ''}${sparkSvg(x.s.map(p => p[1]), cv(x.c), i) || `<span class="sp-empty" style="--c:var(${x.c})"></span>`}</button>`).join('')}
       <div class="cc-side"><section class="cc-ai"><div class="card-h"><span class="ttl">AI insights</span><span class="pill acc">Rules · live</span></div>
         <div class="ai-row"><div class="ring" style="--p:${hs === null ? 0 : hs.toFixed(0)}"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="42" class="trk"/><circle cx="50" cy="50" r="42" class="val" pathLength="100" stroke-dasharray="${hs === null ? 0 : hs.toFixed(1)} 100"/></svg><div><b>${hs === null ? '–' : hs.toFixed(0) + '%'}</b><span>Health</span></div></div>
           <dl class="ai-list"><div><dt>GMV trend</dt><dd class="${gTrend[1]}">${gTrend[0]}</dd></div><div><dt>Market position</dt><dd class="${mkt[1]}">${mkt[0]}</dd></div><div><dt>Risk</dt><dd class="${risk[1]}">${risk[0]}</dd></div>${kt ? `<div><dt>KRA ${monLbl(kraM_).slice(0, 3)}</dt><dd class="${kt.self >= 100 ? 'good' : kt.self >= 80 ? 'warn' : 'bad'}">${kt.self.toFixed(1)}%</dd></div>` : ''}</dl></div>
@@ -2329,6 +2413,104 @@ afterRender.planner = () => {
   $('#pl-day2').addEventListener('click', cp);
 };
 
+// ---------- RED DEAL 10%+ ----------
+const rdShort = m => monLbl(m).slice(0, 3);
+const hasRD = () => S.datasets.some(d => d.t === 'rd_month');
+function rdNeed(p, target) { return p && target !== null && p.pct < target ? Math.ceil(target / 100 * p.seats - p.rd10) : 0; }
+function rdSection() {
+  const k = M.kpi; if (!k.rdMonths || !k.rdMonths.length) return '';
+  const tg = k.rd10Target, cur = k.rd10, prev = k.rd10Prev, names = myNames(), reg = NX.myRegions(S.datasets, names);
+  const bdm = reg.bdm ? NX.rdMetrics(S.datasets, { level: 'bdm', value: reg.bdm }, names) : null;
+  const rh = reg.rh ? NX.rdMetrics(S.datasets, { level: 'rh', value: reg.rh }, names) : null;
+  const all = NX.rdMetrics(S.datasets, { level: 'all' }, names);
+  const ms = k.rdMonths.map(x => x.m);
+  const pick = (r, m) => { const x = r && r.months.find(y => y.m === m); return x ? x.pct : null; };
+  const lb = reg.bdm && cur ? NX.rdLeaderboard(S.datasets, { level: 'bdm', value: reg.bdm }, names, cur.m) : [];
+  const rank = lb.findIndex(o => o.mine) + 1;
+  const ops = M.rows.filter(r => r.rd10).sort((a, b) => b.rd10.seats - a.rd10.seats);
+  const need = rdNeed(cur, tg);
+  const ch = cur && prev ? cur.pct - prev.pct : null;
+  return `<div class="tiles">
+      <div class="tile ${tg !== null && cur ? (cur.pct >= tg ? 'good' : 'warn') : ''}"><span class="eyebrow">Red Deal 10%+ · ${cur ? rdShort(cur.m) : ''}</span><span class="v">${cur ? pctH(cur.pct, 2) : '–'}</span><span class="s">Target ${tg !== null ? tg + '%' : '–'}${k.rd10TargetFrom ? ' · ' + esc(k.rd10TargetFrom) : ''}</span></div>
+      <div class="tile"><span class="eyebrow">vs last month</span><span class="v ${ch === null ? '' : ch >= 0 ? 'good' : 'bad'}">${ch === null ? '–' : (ch >= 0 ? '+' : '') + ch.toFixed(2)}<small>pts</small></span><span class="s">${prev ? rdShort(prev.m) + ' ' + pct(prev.pct, 2) : ''}</span></div>
+      <div class="tile"><span class="eyebrow">RD 10%+ seats</span><span class="v">${cur ? fmt(cur.rd10) : '–'}</span><span class="s">of ${cur ? fmt(cur.seats) : '–'} B2C seats · ${cur ? cur.ops : 0} operators</span></div>
+      <div class="tile ${need ? 'warn' : 'good'}"><span class="eyebrow">Seats to hit target</span><span class="v">${need ? fmt(need) : '✓'}</span><span class="s">${need ? 'more RD 10%+ seats this month' : 'target reached'}</span></div>
+      ${rank ? `<div class="tile"><span class="eyebrow">Rank in ${esc(reg.bdm)}</span><span class="v">#${rank}<small> of ${lb.length}</small></span><span class="s">Top: ${esc(lb[0].name)} ${lb[0].pct.toFixed(1)}%</span></div>` : ''}
+    </div>
+    <section class="card"><div class="card-h"><h2>Red Deal 10%+ share by month</h2><span class="muted">RD 10%+ seats ÷ B2C seats</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Scope</th>${ms.map(m => `<th class="n">${rdShort(m)}</th>`).join('')}</tr></thead><tbody>
+        <tr><td><b>${esc(S.settings.owner)} (me)</b></td>${k.rdMonths.map(x => `<td class="n ${tg !== null ? (x.pct >= tg ? 'good' : 'bad') : ''}"><b>${pct(x.pct, 2)}</b></td>`).join('')}</tr>
+        ${tg !== null ? `<tr><td>Target</td>${ms.map(() => `<td class="n muted">${tg}%</td>`).join('')}</tr>` : ''}
+        ${bdm ? `<tr><td>${esc(reg.bdm)}</td>${ms.map(m => `<td class="n">${pct(pick(bdm, m), 2)}</td>`).join('')}</tr>` : ''}
+        ${rh ? `<tr><td>${esc(reg.rh)}</td>${ms.map(m => `<td class="n">${pct(pick(rh, m), 2)}</td>`).join('')}</tr>` : ''}
+        ${all ? `<tr><td>Pan India</td>${ms.map(m => `<td class="n">${pct(pick(all, m), 2)}</td>`).join('')}</tr>` : ''}
+      </tbody></table></div>
+      <div class="chart" id="ch-rd" style="height:240px"></div></section>
+    <section class="card"><div class="card-h"><h2>Red Deal 10%+ by operator</h2><span class="muted">${ops.length} operators · biggest first</span></div>
+      <div class="tbl-wrap"><table><thead><tr><th>Operator</th>${ms.map(m => `<th class="n">${rdShort(m)}</th>`).join('')}<th class="n">Seats ${cur ? rdShort(cur.m) : ''}</th><th class="n">RD seats</th><th class="n">Need</th></tr></thead><tbody>
+      ${ops.map(r => { const mp = new Map(r.rd10Months); const n = rdNeed(r.rd10, tg); return `<tr class="click" data-op="${esc(r.vid)}"><td><span class="nm">${esc(opName(r.vid))}</span></td>${ms.map(m => { const p = mp.get(m); return `<td class="n ${p && tg !== null ? (p.pct >= tg ? 'good' : p.seats >= 500 ? 'bad' : '') : ''}">${p ? pct(p.pct, 1) : '–'}</td>`; }).join('')}<td class="n">${fmt(r.rd10.seats)}</td><td class="n">${fmt(r.rd10.rd10)}</td><td class="n ${n ? 'warn' : 'good'}">${n ? fmt(n) : '✓'}</td></tr>`; }).join('')}
+      </tbody></table></div></section>`;
+}
+function rdChart() {
+  const el = $('#ch-rd'); if (!el || !window.echarts) return;
+  const k = M.kpi, names = myNames(), reg = NX.myRegions(S.datasets, names), ms = k.rdMonths.map(x => x.m);
+  const ser = [[S.settings.owner + ' (me)', k.rdMonths.map(x => +x.pct.toFixed(2)), css('--good')]];
+  const add = (lbl, sc, c) => { const r = NX.rdMetrics(S.datasets, sc, names); if (r) ser.push([lbl, ms.map(m => { const x = r.months.find(y => y.m === m); return x && x.pct !== null ? +x.pct.toFixed(2) : null; }), c]); };
+  if (reg.bdm) add(reg.bdm, { level: 'bdm', value: reg.bdm }, css('--accent')); if (reg.rh) add(reg.rh, { level: 'rh', value: reg.rh }, css('--violet')); add('Pan India', { level: 'all' }, css('--muted'));
+  const c = echarts.init(el, null, { renderer: 'svg' }); charts.push(c);
+  const mu = css('--muted'), ln = css('--line'), fg = css('--fg');
+  c.setOption({ grid: { left: 8, right: 16, top: 34, bottom: 6, containLabel: true }, legend: { top: 0, textStyle: { color: mu, fontSize: 12 }, icon: 'roundRect', itemWidth: 10, itemHeight: 10 },
+    tooltip: { trigger: 'axis', backgroundColor: css('--panel'), borderColor: ln, textStyle: { color: fg }, valueFormatter: v => v === null ? '–' : v + '%' },
+    xAxis: { type: 'category', data: ms.map(rdShort), axisLabel: { color: mu }, axisLine: { lineStyle: { color: ln } }, axisTick: { show: false } },
+    yAxis: { type: 'value', scale: true, splitLine: { lineStyle: { color: ln } }, axisLabel: { color: mu, formatter: '{value}%' } },
+    series: ser.map(([n, d, col], i) => ({ name: n, type: 'line', data: d, smooth: true, symbolSize: i ? 5 : 8, lineStyle: { width: i ? 1.6 : 3, color: col }, itemStyle: { color: col },
+      markLine: i || k.rd10Target === null ? undefined : { symbol: 'none', silent: true, lineStyle: { color: css('--amber'), type: 'dashed' }, label: { position: 'insideEndTop', color: css('--amber'), formatter: 'Target ' + k.rd10Target + '%' }, data: [{ yAxis: k.rd10Target }] } })) });
+}
+function rdCompareCard(A, B) {
+  if (!hasRD()) return '';
+  const names = myNames(), a = NX.rdMetrics(S.datasets, A, names), b = NX.rdMetrics(S.datasets, B, names); if (!a || !b) return '';
+  return `<section class="card"><div class="card-h"><h2>Red Deal 10%+ share</h2><span class="muted">${esc(scopeLabel(A))} vs ${esc(scopeLabel(B))}</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Month</th><th class="n">${esc(scopeLabel(A))}</th><th class="n">${esc(scopeLabel(B))}</th><th class="n">Difference</th></tr></thead><tbody>
+    ${a.months.map((x, i) => { const y = b.months[i]; const d = x.pct !== null && y && y.pct !== null ? x.pct - y.pct : null; return `<tr><td>${monLbl(x.m)}</td><td class="n">${pct(x.pct, 2)}<small class="muted"> · ${fmt(x.seats)}</small></td><td class="n">${pct(y && y.pct, 2)}<small class="muted"> · ${fmt(y && y.seats)}</small></td><td class="n ${d === null ? '' : d >= 0 ? 'good' : 'bad'}">${d === null ? '–' : (d >= 0 ? '+' : '') + d.toFixed(2) + ' pts'}</td></tr>`; }).join('')}
+    </tbody></table></div><p class="muted" style="margin:0;font-size:.8rem">Small number after each % is B2C seats. ${a.ops} vs ${b.ops} operators.</p></section>`;
+}
+function rdLbCard(parent) {
+  if (!hasRD()) return '';
+  const d = S.datasets.find(x => x.t === 'rd_month'); const ms = [...new Set(d.rows.map(r => r.m))].sort(); const m = ms[ms.length - 1];
+  const lb = NX.rdLeaderboard(S.datasets, parent, myNames(), m); if (!lb.length) return '';
+  const rank = lb.findIndex(o => o.mine) + 1;
+  return `<section class="card"><div class="card-h"><h2>Red Deal 10%+ ranking · ${rdShort(m)}</h2><span class="pill ${rank && rank <= Math.ceil(lb.length / 2) ? 'good' : 'warn'}">${rank ? `#${rank} of ${lb.length} in ${esc(scopeLabel(parent))}` : 'Not in this group'}</span></div><div class="chart" id="ch-rdlb" data-m="${m}"></div></section>`;
+}
+function rdLbChart(parent) {
+  const el = $('#ch-rdlb'); if (!el || !window.echarts) return;
+  let lb = NX.rdLeaderboard(S.datasets, parent, myNames(), el.dataset.m); const mine = lb.find(o => o.mine); lb = lb.slice(0, 14); if (mine && !lb.includes(mine)) lb.push(mine); lb = lb.reverse();
+  el.style.height = Math.max(220, lb.length * 30 + 40) + 'px';
+  const c = echarts.init(el, null, { renderer: 'svg' }); charts.push(c);
+  const mu = css('--muted'), ln = css('--line'), fg = css('--fg');
+  c.setOption({ grid: { left: 8, right: 56, top: 6, bottom: 6, containLabel: true }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, backgroundColor: css('--panel'), borderColor: ln, textStyle: { color: fg }, valueFormatter: v => v + '%' },
+    xAxis: { type: 'value', splitLine: { lineStyle: { color: ln } }, axisLabel: { color: mu, formatter: '{value}%' } },
+    yAxis: { type: 'category', data: lb.map(o => o.mine ? S.settings.owner + ' (me)' : o.name), axisLabel: { color: fg, fontSize: 12, fontWeight: 600 }, axisTick: { show: false }, axisLine: { lineStyle: { color: ln } } },
+    series: [{ type: 'bar', barMaxWidth: 16, data: lb.map(o => ({ value: +o.pct.toFixed(2), itemStyle: { color: o.mine ? css('--good') : css('--violet'), borderRadius: [0, 5, 5, 0] } })), label: { show: true, position: 'right', color: mu, fontSize: 12, formatter: p => p.value.toFixed(1) + '%' } }] });
+}
+// operator 360 strip
+function rdOpCard(r) {
+  if (!r || !r.rd10Months || !r.rd10Months.some(x => x[1])) return '';
+  const tg = M.kpi.rd10Target, n = rdNeed(r.rd10, tg);
+  return `<section class="card"><div class="card-h"><h2>Red Deal 10%+</h2><span class="muted">target ${tg !== null ? tg + '%' : '–'}</span></div><div class="kv">
+    ${r.rd10Months.map(([m, p]) => `<div><span>${monLbl(m)}</span><b class="${p && tg !== null ? (p.pct >= tg ? 'good' : 'bad') : ''}">${p ? pct(p.pct, 2) : '–'}</b></div>`).join('')}
+    ${r.rd10 ? `<div><span>B2C seats ${rdShort(r.rd10.m || M.kpi.rd10.m)}</span><b>${fmt(r.rd10.seats)}</b></div><div><span>RD 10%+ seats</span><b>${fmt(r.rd10.rd10)}</b></div><div><span>Seats to hit target</span><b class="${n ? 'warn' : 'good'}">${n ? fmt(n) : '✓'}</b></div>` : ''}
+  </div></section>`;
+}
+// big files: keep only summaries, never the raw sheet
+function rdCleanup() {
+  let changed = false;
+  const before = S.datasets.length;
+  S.datasets = S.datasets.filter(d => !(d.t === 'custom' && ((d.cols || []).some(c => /red_deal_seats_10|^b2c_seats$/i.test(String(c && (c.h || c.name || c)))) || /red ?deal dashboard/i.test(String(d.name || d.file || '')))));
+  if (S.datasets.length !== before) changed = true;
+  S.datasets.forEach(d => { if (d.t === 'custom' && d.rows && d.rows.length > 25000) { d.rows = d.rows.slice(0, 25000); d.trimmed = true; changed = true; } });
+  return changed;
+}
+
 // ---------- THEMES ----------
 const THEMES = [{ id: 'midnight', label: 'Midnight', mode: 'dark', bg: '#050A17', panel: '#0B1427', panel2: '#101C35', fg: '#E9F1FF', accent: '#3CCBFF', second: '#8F7CFF', amber: '#FFB547' }, { id: 'obsidian', label: 'Obsidian Gold', mode: 'dark', bg: '#0B0A08', panel: '#14120E', panel2: '#1C1914', fg: '#F4EEE2', accent: '#E3B865', second: '#C9A27A', amber: '#F0A84B' }, { id: 'aurora', label: 'Aurora', mode: 'dark', bg: '#04141A', panel: '#0A1F27', panel2: '#0F2A33', fg: '#E4F5F1', accent: '#2EE6B6', second: '#5FB7FF', amber: '#F7C46C' }, { id: 'plum', label: 'Royal Plum', mode: 'dark', bg: '#110A1C', panel: '#1A1128', panel2: '#231735', fg: '#F2EBFC', accent: '#C38BFF', second: '#F0A6E8', amber: '#FBBF4A' }, { id: 'graphite', label: 'Graphite', mode: 'dark', bg: '#0D0E10', panel: '#16181B', panel2: '#1D2024', fg: '#ECEEF1', accent: '#7CB8FF', second: '#A99BFF', amber: '#F5B451' }, { id: 'ruby', label: 'Ruby Night', mode: 'dark', bg: '#12080B', panel: '#1C0F14', panel2: '#26141B', fg: '#FBECEF', accent: '#FF4D73', second: '#FF9A6B', amber: '#FFB547' }, { id: 'pearl', label: 'Pearl', mode: 'light', bg: '#F3F5FA', panel: '#FFFFFF', panel2: '#EDF1F8', fg: '#0E1526', accent: '#0B78A8', second: '#6352CF', amber: '#C77A0A' }, { id: 'ivory', label: 'Ivory Gold', mode: 'light', bg: '#F7F3EC', panel: '#FFFDF9', panel2: '#F1EBE0', fg: '#1F1A14', accent: '#9A6A12', second: '#4F5BD5', amber: '#B86E0A' }, { id: 'rose', label: 'Rose', mode: 'light', bg: '#FBF1F2', panel: '#FFFFFF', panel2: '#FBE8EB', fg: '#1B1416', accent: '#D61F4D', second: '#6D3AE0', amber: '#C9700A' }, { id: 'mint', label: 'Mint Cloud', mode: 'light', bg: '#EFF7F4', panel: '#FFFFFF', panel2: '#E3F1EC', fg: '#0F1E1A', accent: '#0E8C6E', second: '#3466D6', amber: '#B97709' }];
 
@@ -2510,6 +2692,7 @@ async function handleFiles(files) {
   for (const f of files) {
     try {
       const buf = await f.arrayBuffer(); const isCsv = /\.csv$/i.test(f.name);
+      if (f.size > 3e6 && res) res.innerHTML = `<div class="res"><span class="pill acc">Working</span><span>Reading ${esc(f.name)} — big file, about 20–40 seconds…</span><span></span></div>`; await new Promise(r => setTimeout(r, 30));
       const wb = XLSX.read(buf, { type: 'array', cellDates: true, raw: isCsv, dense: false });
       for (const sn of wb.SheetNames) {
         const aoa = XLSX.utils.sheet_to_json(wb.Sheets[sn], { header: 1, raw: true, defval: null });
@@ -2518,6 +2701,9 @@ async function handleFiles(files) {
         if (!d.template) { const c = importCustom(aoa, f.name, sn, wb.SheetNames.length > 1); if (c) { fresh.push(c); out.push({ ok: true, label: 'Added to My reports: ' + c.name, file: f.name, sheet: wb.SheetNames.length > 1 ? sn : '', rows: c.rows.length, go: c.id }); } continue; }
         if (d.template.id === 'ads_summary') { const rs = NX.normalise('ads_summary', d.rows, S.settings.owner, d); if (rs.length) { fresh.push({ id: 'ads_summary|' + Date.now(), t: 'ads_summary', window: 'MTD', rows: rs, file: f.name, sheet: sn, at: Date.now() }); out.push({ ok: true, label: 'BDE revenue summary (SL + SRP)', file: f.name, sheet: sn, rows: rs.length }); } else out.push({ ok: false, skip: true, label: sn + ' — region totals, not needed', file: f.name, sheet: sn }); continue; }
         if (/full|projection/i.test(d.window)) { out.push({ ok: false, skip: true, label: d.template.name + (d.window ? ' · ' + d.window : '') + ' — not needed, totals are calculated from raw rows', file: f.name, sheet: sn }); continue; }
+        if (d.template.id === 'rd_daily') { const a = NX.aggRD(aoa, d.headerIdx); const at = Date.now(); fresh.push({ id: 'rd_month|' + at, t: 'rd_month', window: 'MTD', rows: a.month, file: f.name, sheet: sn, at, last: a.last }, { id: 'rd_day|' + at, t: 'rd_day', window: 'MTD', rows: a.day, file: f.name, sheet: sn, at, last: a.last }); out.push({ ok: true, label: 'Red Deal 10%+ dashboard · daily data till ' + a.last, file: f.name, sheet: sn, rows: a.rows, go: 'ads' }); continue; }
+        if (d.template.id === 'rd_targets') { const rs = NX.parseRdTargets(aoa); if (rs.length) { fresh.push({ id: 'rd_targets|' + Date.now(), t: 'rd_targets', window: 'MTD', rows: rs, file: f.name, sheet: sn, at: Date.now() }); out.push({ ok: true, label: 'Red Deal targets by region', file: f.name, sheet: sn, rows: rs.length }); } continue; }
+        if (d.template.id === 'rd_emp' || d.template.id === 'rd_bo') { out.push({ ok: false, skip: true, label: d.template.name + ' — not needed, calculated from the daily sheet', file: f.name, sheet: sn }); continue; }
         if (d.template.id === 'kra_summary') { const rs = NX.normalise('kra_summary', d.rows, S.settings.owner, d); kraImports.push([rs, f.name]); continue; }
         const rows = NX.normalise(d.template.id, d.rows, S.settings.owner, d);
         fresh.push({ id: d.template.id + '|' + d.window + '|' + Date.now() + Math.random(), t: d.template.id, window: d.window, rows, file: f.name, sheet: sn, at: Date.now() });
