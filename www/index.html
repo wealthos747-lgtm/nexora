@@ -991,19 +991,22 @@ var NX = (function () {
     if (!m[2] && mo > now.getMonth() + 1) y--; return y + '-' + p2(mo);
   }
   function svcSnapshot(rows, names) {
-    const me = meTest(names || []); const mine = [], ops = new Map(), bdes = new Map();
+    const me = meTest(names || []); const mine = [], ops = new Map(), bdes = new Map(), routes = new Map();
     for (const r of rows) {
       const vid = str(r.vendorid), sid = str(r.serviceid); if (!vid) continue;
       const days = num(r.activedays) || 0, txn = num(r['Txn Days']) || 0, seats = num(r['rB Seats']) || 0, gmv = num(r['rB GMV']) || 0, avail = num(r['Total available']) || 0, rating = num(r.agg_ratings_routeid), yb = pct01(r['YB Assign %']);
       const bde = str(r['BDE Name']), bdm = str(r['BDM Region']), bo = str(r['BO Name']);
-      if (me({ bde })) mine.push({ k: vid + '|' + sid, vid, sid, bo, route: str(r.Route) || (str(r['New Source Name']) + '-' + str(r['New destination Name'])), dep: str(r.deptime).slice(0, 5), bus: str(r['New Bus Type']) || str(r['AC/NON AC']), days, txn, seats, gmv, avail, rating, yb });
+      const ac = /non/i.test(str(r['AC/NON AC'])) ? 'N' : 'A', rk = (str(r.Route) || (str(r['New Source Name']) + '-' + str(r['New destination Name']))) + '|' + ac;
+      let q = routes.get(rk); if (!q) { q = { k: rk, n: 0, ops: {}, seats: 0, gmv: 0, s15: 0, a15: 0 }; routes.set(rk, q); } q.n++; q.ops[vid] = 1; q.seats += seats; q.gmv += gmv; if (days >= 15) { q.s15 += seats; q.a15 += avail; }
+      if (me({ bde })) mine.push({ ac, k: vid + '|' + sid, vid, sid, bo, route: str(r.Route) || (str(r['New Source Name']) + '-' + str(r['New destination Name'])), dep: str(r.deptime).slice(0, 5), bus: str(r['New Bus Type']) || str(r['AC/NON AC']), days, txn, seats, gmv, avail, rating, yb });
       let o = ops.get(vid); if (!o) { o = { vid, bo, bde, bdm, mine: me({ bde }), n: 0, n15: 0, days: 0, txn: 0, seats: 0, gmv: 0, avail: 0, s15: 0, a15: 0, zero15: 0, rt: 0, rtn: 0 }; ops.set(vid, o); }
       o.n++; o.days += days; o.txn += txn; o.seats += seats; o.gmv += gmv; o.avail += avail; if (days >= 15) { o.n15++; o.s15 += seats; o.a15 += avail; if (!seats) o.zero15++; } if (rating) { o.rt += rating; o.rtn++; }
       let b = bdes.get(bde); if (!b) { b = { bde, bdm, mine: me({ bde }), n: 0, n15: 0, seats: 0, gmv: 0, s15: 0, a15: 0, txn: 0 }; bdes.set(bde, b); }
       b.n++; b.seats += seats; b.gmv += gmv; b.txn += txn; if (days >= 15) { b.n15++; b.s15 += seats; b.a15 += avail; }
     }
     const r2 = x => Math.round(x * 100) / 100;
-    return { rows: mine, ops: [...ops.values()].map(o => Object.assign(o, { gmv: Math.round(o.gmv), rt: o.rtn ? r2(o.rt / o.rtn) : null, rtn: undefined })), bdes: [...bdes.values()].map(b => Object.assign(b, { gmv: Math.round(b.gmv) })) };
+    const rts = [...routes.values()].filter(q => q.n > 1 || mine.some(s => s.route + '|' + s.ac === q.k)).map(q => ({ k: q.k, n: q.n, o: Object.keys(q.ops).length, seats: q.seats, gmv: Math.round(q.gmv), s15: q.s15, a15: q.a15 }));
+    return { routes: rts, rows: mine, ops: [...ops.values()].map(o => Object.assign(o, { gmv: Math.round(o.gmv), rt: o.rtn ? r2(o.rt / o.rtn) : null, rtn: undefined })), bdes: [...bdes.values()].map(b => Object.assign(b, { gmv: Math.round(b.gmv) })) };
   }
   const band = d => d > 20 ? 'g20' : d >= 15 ? 'b15' : 'l15';
   function svcMonthKpi(rows) {
@@ -1068,6 +1071,40 @@ var NX = (function () {
     out.degrowing.sort((a, b) => lost(b) - lost(a)); out.sudden.sort((a, b) => lost(b) - lost(a)); out.stopped.sort((a, b) => lost(b) - lost(a)); out.picking.sort((a, b) => -lost(b) + lost(a)); out.newer.sort((a, b) => (b.seats[b.seats.length - 1] || 0) - (a.seats[a.seats.length - 1] || 0));
     return out;
   }
+  // one service against its route (same route, AC / non-AC, all operators in the file)
+  function svcDiagnose(s, route, prev, T) {
+    T = T || {}; const lowLiq = T.liqLow || 15, liq = s.avail ? s.seats / s.avail * 100 : null, asp = s.seats ? s.gmv / s.seats : null;
+    const rl = route && route.a15 ? route.s15 / route.a15 * 100 : null, ra = route && route.seats ? route.gmv / route.seats : null;
+    const share = route && route.seats ? s.seats / route.seats * 100 : null;
+    const out = { liq, asp, rl, ra, share, prem: asp && ra ? (asp / ra - 1) * 100 : null, problems: [], actions: [], gap: 0, upside: 0, status: 'ok', delta: null };
+    const P = (t, a) => { out.problems.push(t); if (a) out.actions.push(a); };
+    if (s.days < 15) P('runs only ' + s.days + ' days', 'Check if the service is seasonal, blocked or newly added');
+    else if (!s.seats) P('no seats sold in ' + s.days + ' running days', 'Check listing, seat layout, fare and cancellation — call the BO');
+    if (s.days >= 15 && s.seats && s.txn < s.days * 0.5) P('sells on only ' + s.txn + ' of ' + s.days + ' days', 'Weak days — dynamic fares / Red Deal on low days');
+    if (liq !== null && rl !== null && s.days >= 15 && route.n > 1 && liq < rl - 8) {
+      if (out.prem !== null && out.prem > 8) P('fare ' + Math.round(out.prem) + '% above route, liquidation ' + Math.round(rl - liq) + ' pts below route', 'Bring fare closer to route average or add Red Deal 10%+');
+      else P('liquidation ' + Math.round(rl - liq) + ' pts below route at a similar fare', 'Check timing, bus type and rating; push SRP / SL ads for visibility');
+      out.gapSeats = Math.max(0, Math.round((rl - liq) / 100 * s.avail)); out.gap = out.gapSeats * Math.min(asp || ra || 0, ra || asp || 0);
+    } else if (liq !== null && s.days >= 15 && s.seats && liq < lowLiq) { P('liquidation ' + liq.toFixed(1) + '% (under ' + lowLiq + '%)', 'Too many seats for demand — trim inventory or run Red Deal'); }
+    if (s.rating && s.rating < 3.8) P('rating ' + s.rating.toFixed(1), 'Fix service quality — reviews pull the listing down');
+    if (s.yb !== null && s.yb !== undefined && s.days >= 15 && s.yb < 50) P('YB assignment ' + Math.round(s.yb) + '%', 'Get the BO to assign trips in YB');
+    if (liq !== null && liq >= 75 && out.prem !== null && out.prem < -8 && s.seats) { out.upside = s.seats * (ra - asp); out.actions.push('Selling fast at ' + Math.round(-out.prem) + '% below route fare — room to raise fare'); }
+    if (prev) { const pg = prev.gmv || 0; out.delta = s.gmv - pg; if (pg && s.gmv < pg * 0.85) P('GMV down ' + Math.round((1 - s.gmv / pg) * 100) + '% vs last month'); }
+    const major = out.gap >= 1e5 || (liq !== null && s.days >= 15 && liq < lowLiq) || (prev && prev.gmv && s.gmv < prev.gmv * 0.85);
+    out.status = !s.seats && s.days >= 15 ? 'loss' : major ? 'problem' : out.problems.length ? 'watch' : out.upside > 0 ? 'upside' : 'healthy';
+    return out;
+  }
+  function svcHealth(datasets, T) {
+    const H = histSets(datasets); if (!H.length) return null; const L = H[H.length - 1], P = H[H.length - 2];
+    const rmap = new Map((L.routes || []).map(r => [r.k, r])), pm = new Map((P ? P.rows : []).map(s => [s.k, s]));
+    const list = L.rows.map(s => Object.assign({}, s, { dx: svcDiagnose(s, rmap.get(s.route + '|' + (s.ac || 'A')), pm.get(s.k), T) }));
+    const byOp = new Map(); list.forEach(s => { let o = byOp.get(s.vid); if (!o) { o = { vid: s.vid, bo: s.bo, n: 0, seats: 0, gmv: 0, gap: 0, upside: 0, problems: 0, loss: 0, avail15: 0, seats15: 0, gmvP: P ? 0 : null, seatsP: P ? 0 : null, s15P: 0, a15P: 0 }; byOp.set(s.vid, o); } o.n++; o.seats += s.seats; o.gmv += s.gmv; o.gap += s.dx.gap; o.upside += s.dx.upside; if (s.dx.status === 'problem' || s.dx.status === 'loss') o.problems++; if (s.dx.status === 'loss') o.loss++; if (s.days >= 15) { o.avail15 += s.avail; o.seats15 += s.seats; } });
+    if (P) P.rows.forEach(s => { const o = byOp.get(s.vid); if (o) { o.gmvP += s.gmv; o.seatsP += s.seats; if (s.days >= 15) { o.s15P += s.seats; o.a15P += s.avail; } } });
+    const ops = [...byOp.values()].map(o => Object.assign(o, { liq: o.avail15 ? o.seats15 / o.avail15 * 100 : null, liqP: o.a15P ? o.s15P / o.a15P * 100 : null }));
+    return { m: L.m, pm: P ? P.m : null, list, ops, hasRoutes: !!(L.routes && L.routes.length) };
+  }
+  function regionLiq(datasets, bdm) { return histSets(datasets).map(d => { const x = (d.ops || []).filter(o => !bdm || o.bdm === bdm); const a = sum(x, o => o.a15); return { m: d.m, liq: a ? sum(x, o => o.s15) / a * 100 : null, gmv: sum(x, o => o.gmv) }; }); }
+
   // operators and BDEs across the region file, month by month
   function regionOps(datasets, scope) {
     const H = histSets(datasets); if (!H.length) return null; const L = H[H.length - 1], P = H[H.length - 2];
@@ -1087,7 +1124,7 @@ var NX = (function () {
   const _hier = hierarchy;
   hierarchy = function (datasets) { const h = _hier(datasets); const add = (k, v) => { if (v && !h[k].includes(v)) h[k].push(v); }; for (const d of datasets) if (d.t === 'rd_month') for (const r of d.rows) { add('bde', r.bde); add('bdm', r.bdm); add('rh', r.rh); } h.bde.sort(); h.bdm.sort(); h.rh.sort(); return h; };
 
-  return { fileMonth, svcSnapshot, svcMonthKpi, svcTrend, svcInsights, regionOps, forecastNext, aggRider, parseRiderTargets, riderMetrics, aggRD, parseRdTargets, rdMetrics, rdLeaderboard, monthKey, meTest, mineOnly, myRegions, adsMetrics, leaderboard, hierarchy, normName, evalExpr, kraCalc, guessUnit, guessDir, kraSources, TEMPLATES, detect, normalise, nameKey, buildOperators, resolver, model, splitActivities, classify, learn, CATS, num, sum, wavg };
+  return { svcDiagnose, svcHealth, regionLiq, fileMonth, svcSnapshot, svcMonthKpi, svcTrend, svcInsights, regionOps, forecastNext, aggRider, parseRiderTargets, riderMetrics, aggRD, parseRdTargets, rdMetrics, rdLeaderboard, monthKey, meTest, mineOnly, myRegions, adsMetrics, leaderboard, hierarchy, normName, evalExpr, kraCalc, guessUnit, guessDir, kraSources, TEMPLATES, detect, normalise, nameKey, buildOperators, resolver, model, splitActivities, classify, learn, CATS, num, sum, wavg };
 })();
 
 
@@ -1383,6 +1420,7 @@ function svcSorted(list) { const f = SVC_KEY[svcSort.k] || SVC_KEY.liq, d = svcS
 function svcLiq(list) { const av = NX.sum(list, s => s.avail || 0); return av ? NX.sum(list, s => s.seats) / av * 100 : NX.wavg(list, s => s.liq, s => 1); }
 function vServices() {
   const T = S.settings.T;
+  const hx = S.datasets.filter(d => d.t === 'svc_hist').sort((a, b) => a.m < b.m ? -1 : 1).pop(); if (hx && M.rd.some(s => s.txnDays === undefined || s.txnDays === null)) { const hm = new Map(hx.rows.map(r => [r.k, r])); M.rd.forEach(s => { const h = hm.get(s.vid + '|' + s.sid); if (h) { if (s.txnDays === undefined || s.txnDays === null) s.txnDays = h.txn; if (s.days === undefined || s.days === null) s.days = h.days; if (!s.avail) s.avail = h.avail; } }); }
   const all = M.rd, hasAvail = all.some(s => s.avail), hasDays = all.some(s => s.days !== null && s.days !== undefined);
   const band = s => { if (s.days !== null && s.days !== undefined) return s.days > 20 ? 'g20' : s.days >= 15 ? 'b15' : 'l15'; return /more than 15/i.test(s.activeBucket || '') ? 'g15x' : s.activeBucket ? 'l15' : 'g15x'; };
   const BANDS = [['a15', 'Above 15 days', s => band(s) !== 'l15'], ['g20', 'Above 20 days', s => band(s) === 'g20'], ['b15', '15–20 days', s => band(s) === 'b15'], ['l15', 'Below 15 days', s => band(s) === 'l15'], ['all', 'All services', () => true]].filter(b => hasDays || !/^(g20|b15)$/.test(b[0]));
@@ -2744,7 +2782,8 @@ function riderOpBits(vid) {
 
 // ---------- TRENDS & INSIGHTS ----------
 let trRange = 6, trTab = 'degrowing', trScope = 'bdm', trMore = false;
-const mShort = m => new Date(m + '-01T00:00').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }).replace(' ', " '");
+const mShort = m => m === curMonth() ? new Date(m + '-01T00:00').toLocaleDateString('en-IN', { month: 'short' }) + ' MTD' : new Date(m + '-01T00:00').toLocaleDateString('en-IN', { month: 'short', year: '2-digit' }).replace(' ', " '");
+let hcTab = 'problem', hcMore = false;
 const chg = (a, b, unit) => { if (a === null || a === undefined || b === null || b === undefined || isNaN(a) || isNaN(b)) return ''; if (unit === 'pts') { const d = a - b; return `<span class="${d >= 0 ? 'good' : 'bad'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)} pts</span>`; } if (!b) return ''; const d = (a - b) / Math.abs(b) * 100; return `<span class="${d >= 0 ? 'good' : 'bad'}">${d >= 0 ? '▲' : '▼'} ${Math.abs(d).toFixed(1)}%</span>`; };
 const histDS = () => S.datasets.filter(d => d.t === 'svc_hist' && d.m).sort((a, b) => a.m < b.m ? -1 : 1);
 function trMonthsList() { const out = []; const d = new Date(); d.setDate(1); for (let i = 0; i < 18; i++) { out.push(d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')); d.setMonth(d.getMonth() - 1); } return out; }
@@ -2755,7 +2794,7 @@ function vTrends() {
   const all = NX.svcTrend(S.datasets), n = trRange === 1 ? 2 : trRange, T = all.slice(-n), L = all[all.length - 1], P = all[all.length - 2] || null;
   const ms = T.map(x => x.m);
   const fSeats = NX.forecastNext(all.map(x => x.seats)), fGmv = NX.forecastNext(all.map(x => x.gmv)), fLiq = NX.forecastNext(all.map(x => x.liq));
-  const I = NX.svcInsights(S.datasets);
+  const I = NX.svcInsights(S.datasets); const HC = NX.svcHealth(S.datasets, S.settings.T);
   const myBdm = ((H[H.length - 1].ops || []).find(o => o.mine) || {}).bdm || null;
   const R = NX.regionOps(S.datasets, trScope === 'bdm' && myBdm ? { bdm: myBdm } : null);
   // other monthly numbers already in Nexora
@@ -2806,6 +2845,7 @@ function vTrends() {
     <div class="tbl-wrap"><table data-nosort><thead><tr><th rowspan="2">Month</th>${['Above 20 days', '15–20 days', 'Below 15 days'].map(l => `<th class="n" colspan="3">${l}</th>`).join('')}</tr><tr>${[0, 1, 2].map(() => '<th class="n">Services</th><th class="n">Txn days</th><th class="n">Seats</th>').join('')}</tr></thead><tbody>
     ${T.map((x, i) => { const p = i ? T[i - 1] : null; return `<tr><td><b>${mShort(x.m)}</b></td>${['g20', 'b15', 'l15'].map(k => { const b = x.bands[k], q = p && p.bands[k]; return `<td class="n">${fmt(b.n)}</td><td class="n">${fmt(b.txn)}${q ? `<div style="font-size:.75rem">${chg(b.txn, q.txn)}</div>` : ''}</td><td class="n">${fmt(b.seats)}</td>`; }).join('')}</tr>`; }).join('')}
     </tbody></table></div></section>
+  ${HC ? healthBlock(HC) : ''}
   ${tabs.length ? `<section class="card"><div class="card-h"><h2>Service signals</h2><span class="muted">2–3 month pattern · forecast = next month seats</span></div>
     <div class="seg" role="group" aria-label="Signal" style="align-self:flex-start;flex-wrap:wrap">${tabs.map(([k, l, a]) => `<button data-trt="${k}" aria-pressed="${trTab === k}">${l} <span class="muted mono">${a.length}</span></button>`).join('')}</div>
     ${tl.length ? `<div class="tbl-wrap"><table><thead><tr><th>Service ID</th><th>Operator</th><th>Route</th><th>Dep</th>${showM.map(m => `<th class="n">${mShort(m)} seats</th>`).join('')}<th class="n">Liq</th><th class="n">Change</th><th class="n">Forecast</th><th>Why</th><th>What to do</th></tr></thead><tbody>
@@ -2852,6 +2892,7 @@ function regionBlock(R, myBdm, hasP) {
     </tbody></table></div></section>`;
 }
 afterRender.trends = () => {
+  afterRender.trendsHc();
   document.querySelectorAll('[data-trr]').forEach(b => b.addEventListener('click', () => { trRange = +b.dataset.trr; render(); }));
   document.querySelectorAll('[data-trt]').forEach(b => b.addEventListener('click', () => { trTab = b.dataset.trt; trMore = false; const y = window.scrollY; render(); window.scrollTo(0, y); }));
   document.querySelectorAll('[data-trmore]').forEach(b => b.addEventListener('click', () => { trMore = !trMore; const y = window.scrollY; render(); window.scrollTo(0, y); }));
@@ -2868,7 +2909,44 @@ afterRender.trends = () => {
     xAxis: { type: 'category', data: xs, axisLabel: { color: mu }, axisLine: { lineStyle: { color: ln } }, axisTick: { show: false } },
     yAxis: [{ type: 'value', splitLine: { lineStyle: { color: ln } }, axisLabel: { color: mu, formatter: v => (v / 1e5).toFixed(0) + 'L' } }, { type: 'value', splitLine: { show: false }, axisLabel: { color: mu, formatter: '{value}%' } }],
     series: [{ name: 'GMV', type: 'bar', barMaxWidth: 34, data: T.map(x => Math.round(x.gmv)).concat(f !== null ? [{ value: Math.round(f), itemStyle: { color: 'transparent', borderColor: css('--accent'), borderType: 'dashed', borderWidth: 1.5 } }] : []), itemStyle: { color: css('--accent'), borderRadius: [5, 5, 0, 0] }, tooltip: { valueFormatter: v => inr(v) } },
-      { name: 'Liquidation', type: 'line', yAxisIndex: 1, smooth: true, data: T.map(x => x.liq === null ? null : +x.liq.toFixed(1)).concat(fl !== null ? [+fl.toFixed(1)] : []), lineStyle: { width: 2.5, color: css('--good') }, itemStyle: { color: css('--good') }, tooltip: { valueFormatter: v => v + '%' } }] });
+      ...(() => { const H2 = histDS(); const bdm = ((H2[H2.length - 1].ops || []).find(o => o.mine) || {}).bdm; const ms = T.map(x => x.m); const lines = []; if (bdm) lines.push([bdm + ' liquidation', NX.regionLiq(S.datasets, bdm), css('--violet')]); lines.push(['Whole file liquidation', NX.regionLiq(S.datasets, null), css('--muted')]); return lines.map(([n, r, col]) => ({ name: n, type: 'line', yAxisIndex: 1, smooth: true, symbolSize: 4, data: ms.map(m => { const x = r.find(y => y.m === m); return x && x.liq !== null ? +x.liq.toFixed(1) : null; }), lineStyle: { width: 1.5, color: col, type: 'dashed' }, itemStyle: { color: col }, tooltip: { valueFormatter: v => v + '%' } })); })(),
+      { name: 'My liquidation', type: 'line', yAxisIndex: 1, smooth: true, data: T.map(x => x.liq === null ? null : +x.liq.toFixed(1)).concat(fl !== null ? [+fl.toFixed(1)] : []), lineStyle: { width: 2.5, color: css('--good') }, itemStyle: { color: css('--good') }, tooltip: { valueFormatter: v => v + '%' } }] });
+};
+
+const HC_LBL = { loss: ['No sales', 'bad'], problem: ['Problem', 'bad'], watch: ['Watch', 'warn'], upside: ['Price upside', 'good'], healthy: ['Healthy', 'good'] };
+function healthBlock(HC) {
+  const L = HC.list, by = k => L.filter(s => s.dx.status === k);
+  const gap = L.reduce((a, s) => a + s.dx.gap, 0), up = L.reduce((a, s) => a + s.dx.upside, 0);
+  const tabs = [['problem', 'Problems', by('problem').sort((a, b) => b.dx.gap - a.dx.gap || a.seats - b.seats)], ['loss', 'No sales', by('loss').sort((a, b) => b.avail - a.avail)], ['watch', 'Watch', by('watch').sort((a, b) => b.dx.gap - a.dx.gap)], ['upside', 'Price upside', by('upside').sort((a, b) => b.dx.upside - a.dx.upside)], ['healthy', 'Healthy', by('healthy').sort((a, b) => b.gmv - a.gmv)]];
+  const tl = (tabs.find(x => x[0] === hcTab) || tabs[0])[2];
+  const ops = HC.ops.slice().sort((a, b) => b.gap - a.gap);
+  const hasP = !!HC.pm;
+  const gainers = hasP ? HC.ops.filter(o => o.gmvP).map(o => Object.assign(o, { dg: o.gmv - o.gmvP })).sort((a, b) => b.dg - a.dg) : [];
+  const focus = ops.filter(o => o.gap > 0).slice(0, 3);
+  return `<section class="card"><div class="card-h"><h2>Service health check · ${mShort(HC.m)}</h2><span class="muted">each service vs every operator on the same route (AC / non-AC) in the file</span></div>
+    ${HC.hasRoutes ? '' : '<p class="muted" style="margin:0">Re-upload this month\'s service file once to add route benchmarks (fare and liquidation vs route).</p>'}
+    <div class="tiles">
+      <div class="tile bad"><span class="eyebrow">Problem services</span><span class="v">${fmt(by('problem').length + by('loss').length)}</span><span class="s">${by('loss').length} with no sales · ${by('watch').length} more to watch</span></div>
+      <div class="tile warn"><span class="eyebrow">GMV left on the table</span><span class="v">${inrH(gap)}</span><span class="s">if weak services sold like their route average</span></div>
+      <div class="tile good"><span class="eyebrow">Fare upside</span><span class="v">${inrH(up)}</span><span class="s">${by('upside').length} services selling fast below route fare</span></div>
+      <div class="tile good"><span class="eyebrow">Healthy</span><span class="v">${fmt(by('healthy').length)}</span><span class="s">of ${fmt(L.length)} services</span></div>
+    </div>
+    ${focus.length ? `<p style="margin:0"><b>Where to focus:</b> ${focus.map(o => `${esc(o.bo)} (${inr(o.gap)} gap, ${o.problems} problem services)`).join(' · ')}.</p>` : ''}
+    <div class="seg" role="group" aria-label="Health" style="align-self:flex-start;flex-wrap:wrap">${tabs.map(([k, l, a]) => `<button data-hc="${k}" aria-pressed="${hcTab === k}">${l} <span class="muted mono">${a.length}</span></button>`).join('')}</div>
+    ${tl.length ? `<div class="tbl-wrap"><table><thead><tr><th>Service ID</th><th>Operator</th><th>Route</th><th>Dep</th><th class="n">Running / txn days</th><th class="n">Seats</th><th class="n">GMV</th>${hasP ? '<th class="n">vs last month</th>' : ''}<th class="n">Liq</th><th class="n">Route liq</th><th class="n">ASP</th><th class="n">Route ASP</th><th class="n">${hcTab === 'upside' ? 'Upside' : 'GMV gap'}</th><th>What to do</th></tr></thead><tbody>
+      ${tl.slice(0, hcMore ? 300 : 25).map(s => { const d = s.dx; return `<tr class="click" data-op="${esc(s.vid)}"><td class="mono">${esc(s.sid)}</td><td>${esc(opName(s.vid, s.bo))}</td><td style="white-space:normal;min-width:220px">${esc(s.route)} <small class="muted">${s.ac === 'N' ? 'Non AC' : 'AC'}</small><div style="font-size:.78rem;margin-top:2px" class="${d.problems.length ? 'warn' : 'muted'}">${d.problems.length ? esc(d.problems.join(' · ')) : hcTab === 'upside' ? 'sells ' + pct(d.liq, 0) + ' at a lower fare than the route' : 'in line with the route'}</div></td><td class="mono">${esc(s.dep)}</td><td class="n">${s.days} / <span class="${s.txn < s.days * 0.5 ? 'warn' : ''}">${s.txn}</span></td><td class="n">${fmt(s.seats)}</td><td class="n">${inr(s.gmv)}</td>${hasP ? `<td class="n ${d.delta === null ? '' : d.delta >= 0 ? 'good' : 'bad'}">${d.delta === null ? 'new' : (d.delta >= 0 ? '+' : '−') + inr(Math.abs(d.delta))}</td>` : ''}<td class="n ${cls(d.liq, S.settings.T.liqLow, 40)}">${pct(d.liq)}</td><td class="n muted">${pct(d.rl)}</td><td class="n">${fmt(d.asp)}</td><td class="n muted">${fmt(d.ra)}${d.prem !== null ? `<div style="font-size:.75rem" class="${Math.abs(d.prem) > 8 ? (d.prem > 0 ? 'warn' : 'good') : 'muted'}">${d.prem > 0 ? '+' : ''}${d.prem.toFixed(0)}%</div>` : ''}</td><td class="n">${hcTab === 'upside' ? inr(d.upside) : d.gap ? inr(d.gap) : '–'}</td><td style="white-space:normal;min-width:220px;font-size:.82rem">${esc(d.actions.join(' · ') || 'Keep it going')}</td></tr>`; }).join('')}
+    </tbody></table></div>${tl.length > 25 ? `<button class="btn ghost" data-hcmore style="align-self:flex-start">${hcMore ? 'Show top 25' : 'Show all ' + Math.min(tl.length, 300)}</button>` : ''}` : '<div class="empty">Nothing here this month.</div>'}
+  </section>
+  <section class="card"><div class="card-h"><h2>Your operators · ${mShort(HC.m)}</h2><span class="muted">${hasP ? 'change vs ' + mShort(HC.pm) + ' · ' : ''}biggest GMV gap first</span></div>
+    <div class="tbl-wrap"><table><thead><tr><th>Operator</th><th class="n">Services</th><th class="n">Seats</th><th class="n">GMV</th>${hasP ? '<th class="n">GMV change</th><th class="n">Seats change</th><th class="n">Liq change</th>' : ''}<th class="n">Liquidation</th><th class="n">Problem services</th><th class="n">GMV gap</th><th class="n">Fare upside</th></tr></thead><tbody>
+    ${ops.map(o => `<tr class="click" data-op="${esc(o.vid)}"><td>${esc(opName(o.vid, o.bo))}</td><td class="n">${o.n}</td><td class="n">${fmt(o.seats)}</td><td class="n">${inr(o.gmv)}</td>${hasP ? `<td class="n">${o.gmvP ? chg(o.gmv, o.gmvP) + `<div style="font-size:.75rem" class="muted">${o.gmv - o.gmvP >= 0 ? '+' : '−'}${inr(Math.abs(o.gmv - o.gmvP))}</div>` : 'new'}</td><td class="n">${o.seatsP ? chg(o.seats, o.seatsP) : '–'}</td><td class="n">${o.liqP !== null && o.liq !== null ? chg(o.liq, o.liqP, 'pts') : '–'}</td>` : ''}<td class="n ${cls(o.liq, S.settings.T.liqLow, 40)}">${pct(o.liq)}</td><td class="n ${o.problems ? 'bad' : ''}">${o.problems}</td><td class="n">${o.gap ? inr(o.gap) : '–'}</td><td class="n">${o.upside ? inr(o.upside) : '–'}</td></tr>`).join('')}
+    </tbody></table></div>
+    ${gainers.length ? `<p style="margin:0"><b>Biggest gainers:</b> ${gainers.slice(0, 3).filter(o => o.dg > 0).map(o => `${esc(o.bo)} +${inr(o.dg)}`).join(' · ') || '–'}. <b>Biggest losers:</b> ${gainers.slice().reverse().slice(0, 3).filter(o => o.dg < 0).map(o => `${esc(o.bo)} −${inr(-o.dg)}`).join(' · ') || '–'}.</p>` : ''}
+  </section>`;
+}
+afterRender.trendsHc = () => {
+  document.querySelectorAll('[data-hc]').forEach(b => b.addEventListener('click', () => { hcTab = b.dataset.hc; hcMore = false; const y = window.scrollY; render(); window.scrollTo(0, y); }));
+  document.querySelectorAll('[data-hcmore]').forEach(b => b.addEventListener('click', () => { hcMore = !hcMore; const y = window.scrollY; render(); window.scrollTo(0, y); }));
 };
 
 // ---------- THEMES ----------
@@ -3070,8 +3148,8 @@ async function handleFiles(files) {
         if (d.template.id === 'rd_targets') { const rs = NX.parseRdTargets(aoa); if (rs.length) { fresh.push({ id: 'rd_targets|' + Date.now(), t: 'rd_targets', window: 'MTD', rows: rs, file: f.name, sheet: sn, at: Date.now() }); out.push({ ok: true, label: 'Red Deal targets by region', file: f.name, sheet: sn, rows: rs.length }); } continue; }
         if (d.template.id === 'rd_emp' || d.template.id === 'rd_bo') { out.push({ ok: false, skip: true, label: d.template.name + ' — not needed, calculated from the daily sheet', file: f.name, sheet: sn }); continue; }
         if (d.template.id === 'kra_summary') { const rs = NX.normalise('kra_summary', d.rows, S.settings.owner, d); kraImports.push([rs, f.name]); continue; }
-        const latestHist = S.datasets.filter(x => x.t === 'svc_hist').map(x => x.m).sort().pop() || ''; const bookM = NX.fileMonth(f.name) || curMonth(); if ((d.template.id === 'bo_wise' || d.template.id === 'service_rd') && latestHist > bookM) { if (d.template.id === 'service_rd') { const sn2 = NX.svcSnapshot(d.rows, myNames()); fresh.push({ id: 'svc_hist|' + bookM, t: 'svc_hist', m: bookM, rows: sn2.rows, ops: sn2.ops, bdes: sn2.bdes, file: f.name, sheet: sn, at: Date.now() }); out.push({ ok: true, label: 'Older month — saved to history as ' + monLbl(bookM) + ' (Services page keeps ' + monLbl(latestHist) + ')', file: f.name, sheet: sn, rows: sn2.rows.length, go: 'trends' }); } continue; }
-        if (d.template.id === 'service_rd') { const m = NX.fileMonth(f.name) || curMonth(); const sn2 = NX.svcSnapshot(d.rows, myNames()); fresh.push({ id: 'svc_hist|' + m, t: 'svc_hist', m, rows: sn2.rows, ops: sn2.ops, bdes: sn2.bdes, file: f.name, sheet: sn, at: Date.now() }); out.push({ ok: true, label: 'Saved to history as ' + monLbl(m) + (NX.fileMonth(f.name) ? '' : ' (no month in file name — change it in Trends if wrong)'), file: f.name, sheet: sn, rows: sn2.rows.length, go: 'trends' }); }
+        const latestHist = S.datasets.filter(x => x.t === 'svc_hist').map(x => x.m).sort().pop() || ''; const bookM = NX.fileMonth(f.name) || curMonth(); if ((d.template.id === 'bo_wise' || d.template.id === 'service_rd') && latestHist > bookM) { if (d.template.id === 'service_rd') { const sn2 = NX.svcSnapshot(d.rows, myNames()); fresh.push({ id: 'svc_hist|' + bookM, t: 'svc_hist', m: bookM, rows: sn2.rows, ops: sn2.ops, bdes: sn2.bdes, routes: sn2.routes, file: f.name, sheet: sn, at: Date.now() }); out.push({ ok: true, label: 'Older month — saved to history as ' + monLbl(bookM) + ' (Services page keeps ' + monLbl(latestHist) + ')', file: f.name, sheet: sn, rows: sn2.rows.length, go: 'trends' }); } continue; }
+        if (d.template.id === 'service_rd') { const m = NX.fileMonth(f.name) || curMonth(); const sn2 = NX.svcSnapshot(d.rows, myNames()); fresh.push({ id: 'svc_hist|' + m, t: 'svc_hist', m, rows: sn2.rows, ops: sn2.ops, bdes: sn2.bdes, routes: sn2.routes, file: f.name, sheet: sn, at: Date.now() }); out.push({ ok: true, label: 'Saved to history as ' + monLbl(m) + (NX.fileMonth(f.name) ? '' : ' (no month in file name — change it in Trends if wrong)'), file: f.name, sheet: sn, rows: sn2.rows.length, go: 'trends' }); }
         const rows = NX.normalise(d.template.id, d.rows, S.settings.owner, d);
         fresh.push({ id: d.template.id + '|' + d.window + '|' + Date.now() + Math.random(), t: d.template.id, window: d.window, rows, file: f.name, sheet: sn, at: Date.now() });
         out.push({ ok: true, label: d.template.name + (d.window && d.window !== 'MTD' ? ' · ' + d.window : ''), file: f.name, sheet: wb.SheetNames.length > 1 ? sn : '', rows: rows.length });
